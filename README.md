@@ -1,5 +1,5 @@
 # SIAM
-Full head segmentation 
+**S**egment **I**t **A**ll **M**odel: toward full head segmentation 
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
 
