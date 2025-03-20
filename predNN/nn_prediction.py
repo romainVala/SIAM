@@ -103,11 +103,15 @@ def nn_predict(
     )
 
     if input_is_file:  #otherwise let it in the output folder
-        # remove unnecessary json files
-        label_file = join(os.path.dirname(output_files[0]), f'label_{out_prefix}.json')
-        os.replace(join(os.path.dirname(output_files[0]), 'dataset.json'), label_file)
-        #os.remove(join(os.path.dirname(output_files[0]), 'dataset.json'))
-        os.remove(join(os.path.dirname(output_files[0]), 'plans.json'))
-        os.remove(join(os.path.dirname(output_files[0]), 'predict_from_raw_data_args.json'))
-
+        try :
+            # remove unnecessary json files
+            # may fail if two single file prediction are launch in the same folder (because first process already removed the dataset.json)
+            # not a big deal so skip it if errors
+            label_file = join(os.path.dirname(output_files[0]), f'label_{out_prefix}.json')
+            os.replace(join(os.path.dirname(output_files[0]), 'dataset.json'), label_file)
+            #os.remove(join(os.path.dirname(output_files[0]), 'dataset.json'))
+            os.remove(join(os.path.dirname(output_files[0]), 'plans.json'))
+            os.remove(join(os.path.dirname(output_files[0]), 'predict_from_raw_data_args.json'))
+        except:
+            we_do_not_care=1
 

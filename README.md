@@ -99,10 +99,10 @@ siam-pred -h
 
 ## FAQ
 1. **Will you provide the training code?** It's basically 
-[nnU-Net](https://github.com/MIC-DKFZ/nnUNet) the training data is what matter, we hope to publish them soon
+[nnU-Net](https://github.com/MIC-DKFZ/nnUNet) plus a torchio the training data is what matter, we hope to publish them soon
 2. **What run time can I expect on CPU/GPU?** This depends on your MRI image
    size. Typical run times (preprocessing and resampling
-   included) are just a couple of seconds for GPU and about 2 Minutes on CPU
+   included) are just a couple of minute for GPU and about 30 Minutes on CPU
    (using `--disable_tta`)
 
 <sup>1</sup>https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils
