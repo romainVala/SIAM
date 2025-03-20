@@ -41,55 +41,56 @@ def maybe_download_parameters():
 
 def get_model_path_and_fold(num_model:int ):
     if num_model==0: #get it from zenodo
-        out_prefix = 'siam_'
+        out_prefix = 'siamV01_'
         maybe_download_parameters()
+        res_folder = folder_with_parameter_files
 
     else:
         nnres_path = os.environ.get('nnUNet_results')
         if nnres_path is None:
             raise('For local modem (-m num  (with num>0) you need to specify the environement varaible  nnUNet_results')
 
-    if num_model == 111:
-        res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
-                                  'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
-        out_prefix = 'pred_DS710_3ResEncL_'
+        if num_model == 111:
+            res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
+                                      'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
+            out_prefix = 'pred_DS710_3ResEncL_'
 
-    if num_model == 1:
-        res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
-                                  'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
-        out_prefix = 'pred_DS710_5ResEncXL_'
+        if num_model == 1:
+            res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
+                                      'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS710_5ResEncXL_'
 
-    if num_model == 102:
-        res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
-                                  'nnUNetTrainer__nnUNetPlans_50G__3d_fullres')
-        out_prefix = 'pred_DS710_5nn2Pass_'
+        if num_model == 102:
+            res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
+                                      'nnUNetTrainer__nnUNetPlans_50G__3d_fullres')
+            out_prefix = 'pred_DS710_5nn2Pass_'
 
-    if num_model == 2:
-        #img 450^3 18 mn GPU A100 80G 24 cpu
-        res_folder = os.path.join(nnres_path, 'Dataset709_Vasc2suj_v3',
-                                  'nnUNetTrainer__nnUNetPlans_50G__3d_fullres_first_pass')
-        out_prefix = 'pred_DS709_3nnP50G_'
+        if num_model == 2:
+            #img 450^3 18 mn GPU A100 80G 24 cpu
+            res_folder = os.path.join(nnres_path, 'Dataset709_Vasc2suj_v3',
+                                      'nnUNetTrainer__nnUNetPlans_50G__3d_fullres_first_pass')
+            out_prefix = 'pred_DS709_3nnP50G_'
 
-    if num_model == 3:
-        #img 450^3 18 mn GPU A100 80G 24 cpu
-        res_folder = os.path.join(nnres_path, 'Dataset708_Ultra_SkulVasc40',
-                                  'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
-        out_prefix = 'pred_DS708_5nnResXL_'
+        if num_model == 3:
+            #img 450^3 18 mn GPU A100 80G 24 cpu
+            res_folder = os.path.join(nnres_path, 'Dataset708_Ultra_SkulVasc40',
+                                      'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS708_5nnResXL_'
 
-    if num_model == 4:
-        #img 450^3 18 mn GPU A100 80G 24 cpu
-        res_folder = os.path.join(nnres_path, 'Dataset706_Vasc2suj_l22_v1',
-                                  'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
-        out_prefix = 'pred_DS706_5nnResXL_'
+        if num_model == 4:
+            #img 450^3 18 mn GPU A100 80G 24 cpu
+            res_folder = os.path.join(nnres_path, 'Dataset706_Vasc2suj_l22_v1',
+                                      'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS706_5nnResXL_'
 
-    if num_model == 5:
-        #img 450^3 18 mn GPU A100 80G 24 cpu
-        res_folder = os.path.join(nnres_path, 'Dataset704_Uhcp_skv52_mot_elaBig',
-                                  'nnUNetTrainer__nnUNetPlannerResEncXL_80G__3d_fullres')
-        out_prefix = 'pred_DS704_3nnResXL_'
-    if num_model ==8:
-        res_folder = os.path.join(nnres_path, 'Dataset718_Ultra_SkulVasc40_TumorBrast', 'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
-        out_prefix = 'pred_DS718_5nnResL'
+        if num_model == 5:
+            #img 450^3 18 mn GPU A100 80G 24 cpu
+            res_folder = os.path.join(nnres_path, 'Dataset704_Uhcp_skv52_mot_elaBig',
+                                      'nnUNetTrainer__nnUNetPlannerResEncXL_80G__3d_fullres')
+            out_prefix = 'pred_DS704_3nnResXL_'
+        if num_model ==8:
+            res_folder = os.path.join(nnres_path, 'Dataset718_Ultra_SkulVasc40_TumorBrast', 'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
+            out_prefix = 'pred_DS718_5nnResL'
 
     existing_fold = gdir(res_folder,'fold')
     model_files = gfile(existing_fold, 'checkpoint_final.pth')

@@ -8,7 +8,7 @@ While waiting for a publication related to this work, the method is similar to
     "Comprehensive analysis of synthetic learning applied to neonatal brain MRI segmentation".
      Human Brain Mapping https://doi.org/10.1002/hbm.26674
 
-We are greatful to [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository which provides the code for training, and we buildtthis inference tool
+We are greatful to [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository which provides the code for training, and we built this inference tool
 starting from [HD-BET](https://github.com/MIC-DKFZ/HD-BET). 
 We would also like to thank B. Billot and E. Iglesias for their initial proposition of [SynthSeg](https://github.com/BBillot/SynthSeg):
 Training on synthetic data opens avenues for robust, contrast-agnostic segmentation models.

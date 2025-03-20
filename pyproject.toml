@@ -1,5 +1,5 @@
 [project]
-name = "predNN"
+name = "siam-pred"
 version = "1.0"
 description = "Tool for brain Segmentation (full Head) "
 readme = "README.md"
