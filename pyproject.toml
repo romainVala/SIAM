@@ -1,0 +1,33 @@
+[project]
+name = "predNN"
+version = "1.0"
+description = "Tool for brain Segmentation (full Head) "
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Romain Valabregue", email = "romain.valabregue@icm-institute.org"}
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: Unix"
+]
+urls = { "Homepage" = "https://github.com/romainVala" }
+
+dependencies = [
+    "numpy",
+    "torch>=2.0.0",
+    "scikit-image",
+    "SimpleITK",
+    "nnunetv2>=2.5.1"
+]
+
+[project.scripts]
+"siam-pred" = "predNN.entry_point:main"
+
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
