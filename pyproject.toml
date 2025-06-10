@@ -19,7 +19,8 @@ urls = { "Homepage" = "https://github.com/romainVala" }
 dependencies = [
     "numpy",
     "torch>=2.0.0",
-    "nnunetv2>=2.5.1"
+    "nnunetv2>=2.5.1",
+    "torchio"
 ]
 
 [project.scripts]
