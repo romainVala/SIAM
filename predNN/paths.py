@@ -55,51 +55,114 @@ def get_model_path_and_fold(num_model:int ):
                                       'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
             out_prefix = 'pred_DS710_3ResEncL_'
 
-        if num_model == 1:
+        elif num_model == 1:
             res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
                                       'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
             out_prefix = 'pred_DS710_5ResEncXL_'
 
-        if num_model == 102:
+        elif num_model == 102:
             res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
                                       'nnUNetTrainer__nnUNetPlans_50G__3d_fullres')
             out_prefix = 'pred_DS710_5nn2Pass_'
 
-        if num_model == 2:
+        elif num_model == 2:
             #img 450^3 18 mn GPU A100 80G 24 cpu
             res_folder = os.path.join(nnres_path, 'Dataset709_Vasc2suj_v3',
                                       'nnUNetTrainer__nnUNetPlans_50G__3d_fullres_first_pass')
             out_prefix = 'pred_DS709_3nnP50G_'
 
-        if num_model == 3:
+        elif num_model == 9:
+            #img 450^3 18 mn GPU A100 80G 24 cpu
+            res_folder = [os.path.join(nnres_path, 'Dataset709_Vasc2suj_v3',
+                                       'nnUNetTrainer_onlyMirror01__nnUNetResEncUNetLPlans__3d_lowres'),
+                          os.path.join(nnres_path, 'Dataset709_Vasc2suj_v3',
+                                      'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres') ]
+            out_prefix = 'pred_DS709_CascadeNoDA_'
+
+        elif num_model == 3:
             #img 450^3 18 mn GPU A100 80G 24 cpu
             res_folder = os.path.join(nnres_path, 'Dataset708_Ultra_SkulVasc40',
                                       'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
             out_prefix = 'pred_DS708_5nnResXL_'
 
-        if num_model == 4:
+        elif num_model == 4:
             #img 450^3 18 mn GPU A100 80G 24 cpu
             res_folder = os.path.join(nnres_path, 'Dataset706_Vasc2suj_l22_v1',
                                       'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
             out_prefix = 'pred_DS706_5nnResXL_'
 
-        if num_model == 5:
+        elif num_model == 5:
             #img 450^3 18 mn GPU A100 80G 24 cpu
             res_folder = os.path.join(nnres_path, 'Dataset704_Uhcp_skv52_mot_elaBig',
                                       'nnUNetTrainer__nnUNetPlannerResEncXL_80G__3d_fullres')
             out_prefix = 'pred_DS704_3nnResXL_'
-        if num_model ==8:
+
+        elif num_model ==8:
             res_folder = os.path.join(nnres_path, 'Dataset718_Ultra_SkulVasc40_TumorBrast', 'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
             out_prefix = 'pred_DS718_5nnResL'
 
-    existing_fold = gdir(res_folder,'fold')
-    model_files = gfile(existing_fold, 'checkpoint_final.pth')
-    existing_fold = get_parent_path(model_files)[0] #selec only dir with checkpoint_final
-    existing_fold = [int(ss[-1]) for ss in existing_fold]
+        elif num_model ==88:
+            res_folder = os.path.join(nnres_path, 'Dataset718_Ultra_SkulVasc40_TumorBrast', 'nnUNetTrainer__nnUNetResEncUNetXXLPlans__3d_fullres')
+            out_prefix = 'pred_DS718_5nnResXXL'
 
-    print(f'Selecting model {num_model} out {out_prefix} and found {len(existing_fold)} FOLD')
+        elif num_model ==12:
+            res_folder = os.path.join(nnres_path, 'Dataset712_Vasc2suj_v3_Few', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS712_5ResXL'
+
+        elif num_model ==122:
+            res_folder = os.path.join(nnres_path, 'Dataset712_Vasc2suj_v3_Few', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS712_NODA3ResXL'
+
+        elif num_model ==1212:
+            res_folder = os.path.join(nnres_path, 'Dataset712_Vasc2suj_v3_Few', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS712_SubR_'
+            sub_region = gdir(nnres_path,['Dataset712[0123456789]','nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans'])
+            res_folder = [res_folder, sub_region]
+
+        elif num_model ==14:
+            res_folder = os.path.join(nnres_path, 'Dataset714_MidaSuj3_RFew', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS714_5ResXL'
+
+        elif num_model ==1414:
+            res_folder = os.path.join(nnres_path, 'Dataset714_MidaSuj3_RFew', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS714_SubR_'
+            sub_region = gdir(nnres_path,['Dataset714[0123456789]','nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans'])
+            res_folder = [res_folder, sub_region]
+
+        elif num_model ==13:
+            res_folder = os.path.join(nnres_path, 'Dataset713_MidaSuj1', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS713_3ResXL'
+
+        elif num_model ==15:
+            res_folder = os.path.join(nnres_path, 'Dataset715_MixSuj6', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS715_NODA3ResXL'
+        elif num_model ==152:#do not exist (bad Skull)
+            res_folder = os.path.join(nnres_path, 'Dataset715_MixSuj6', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS715_3ResXL'
+
+
+    if isinstance(res_folder,list): #subregion or cascade
+        existing_fold = []
+        for rrr in res_folder:
+            if isinstance(rrr,list): #subregion case
+                existing_fold.append([get_fold_list(rrrr) for rrrr in rrr ])
+            else:
+                existing_fold.append( get_fold_list(rrr) )
+
+    else:
+        existing_fold = get_fold_list(res_folder)
+
+        print(f'Selecting model {num_model} out {out_prefix} and found {len(existing_fold)} FOLD')
 
     return res_folder, existing_fold, out_prefix
+
+
+def get_fold_list(res):
+    existing_fold = gdir(res,'fold')
+    model_files = gfile(existing_fold, 'checkpoint_final.pth')
+    existing_fold = get_parent_path(model_files)[0] #selec only dir with checkpoint_final
+    return [int(ss[-1]) for ss in existing_fold]
+
 
 
 #files and dir utils
