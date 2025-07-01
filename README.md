@@ -34,6 +34,7 @@ We recommend installing in a virtual environment.
    git clone https://github.com/romainVala/SIAM
    ```
 2. Go into the repository (the folder with the pyproject.toml file) and install:
+   optionally create a conda env before the following commande ()
    ```
    pip install -e .
    ```
