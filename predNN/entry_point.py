@@ -4,7 +4,7 @@ from predNN.nn_prediction import nn_predict
 
 def main():
     #print("\n########################")
-    print("SIAM (Segment it all model), version 0.2  \n")
+    print("SIAM: Segment it all model, version 0.2  \n")
     #print("########################\n")
 
     import argparse
@@ -25,7 +25,7 @@ def main():
     parser.add_argument('--verbose', action='store_true', required=False,
                         help="Talk to me.")
     parser.add_argument('-m', '--model', help='Optional: For local use only : An integer to specify which model '
-                                              '(need the variable nnUNet_results to be define)'
+                                              'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
 
 
