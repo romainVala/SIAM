@@ -1,20 +1,21 @@
 import os,re
 import os
-import zipfile
+import zipfile, tarfile
 from typing import Optional
 
 import requests
 from batchgenerators.utilities.file_and_folder_operations import isfile, join, maybe_mkdir_p
 from tqdm import tqdm
 
-# the link where to get zip version of the models
-ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15055596/files/model_708.zip?download=1'
-folder_with_parameter_files = os.path.join(os.path.expanduser('~'), 'siam_params', 'v0.1')
 
 
-def install_model_from_zip_file(zip_file: str):
+def install_model_from_zip_file(zip_file: str, folder_with_parameter_files):
     with zipfile.ZipFile(zip_file, 'r') as zip_ref:
         zip_ref.extractall(folder_with_parameter_files)
+
+def install_model_from_tar_file(filename_tar: str, folder_with_parameter_files):
+    with tarfile.open(filename_tar, "r:gz") as tar:
+        tar.extractall(folder_with_parameter_files)
 
 
 def download_file(url: str, local_filename: str, chunk_size: Optional[int] = 8192 * 16) -> str:
@@ -28,22 +29,44 @@ def download_file(url: str, local_filename: str, chunk_size: Optional[int] = 819
     return local_filename
 
 
-def maybe_download_parameters():
+def maybe_download_parameters(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
     if not isfile(join(folder_with_parameter_files, 'fold_0', 'checkpoint_final.pth')):
         maybe_mkdir_p(folder_with_parameter_files)
         print(f'Downlod and install model weight in your home {folder_with_parameter_files}')
-        print(f'Sorry the model is quite big (~4G) do not forget to delete the model folder, if no more use ')
+        print(f'Sorry the model is quite big (~5G) do not forget to delete the model folder, if no more use ')
         fname = download_file(ZENODO_DOWNLOAD_URL, join(folder_with_parameter_files, os.pardir, 'tmp_download.zip'))
-        install_model_from_zip_file(fname)
+        install_model_from_zip_file(fname, folder_with_parameter_files)
+        os.remove(fname)
+
+def maybe_download_parameters_tarfile(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
+    if not isfile(join(folder_with_parameter_files, 'fold_0', 'checkpoint_final.pth')):
+        folder_with_parameter_files = os.path.dirname(folder_with_parameter_files)
+        maybe_mkdir_p(folder_with_parameter_files)
+        print(f'Downlod and install model weight in your home {folder_with_parameter_files}')
+        print(f'Sorry the model is quite big (~4G) do not forget to delete the model folder, if no more use ')
+        fname = download_file(ZENODO_DOWNLOAD_URL, join(folder_with_parameter_files, os.pardir, 'tmp_download.tar.gz'))
+        install_model_from_tar_file(fname, folder_with_parameter_files)
         os.remove(fname)
 
 
 
 def get_model_path_and_fold(num_model:int ):
-    if num_model==0: #get it from zenodo
+    if num_model==-1: #get it from zenodo
+        # the link where to get zip version of the models
+        ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15055596/files/model_708.zip?download=1'
+        res_folder = os.path.join(os.path.expanduser('~'), 'siam_params', 'v0.1')
+
         out_prefix = 'siamV01_'
-        maybe_download_parameters()
-        res_folder = folder_with_parameter_files
+        maybe_download_parameters(res_folder, ZENODO_DOWNLOAD_URL)
+
+    if num_model==0: #get it from zenodo
+        # the link where to get zip version of the models
+        ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15780983/files/DS715_NODA.tar.gz?download=1' # https://doi.org/10.5281/zenodo.15780983
+
+        res_folder = os.path.join(os.path.expanduser('~'), 'siam_params', 'v0.2','DS715_NODA')
+
+        out_prefix = 'siamV02_'
+        maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
 
     else:
         nnres_path = os.environ.get('nnUNet_results')
