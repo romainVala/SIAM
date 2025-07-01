@@ -4,7 +4,7 @@ from predNN.nn_prediction import nn_predict
 
 def main():
     #print("\n########################")
-    print("SIAM (Segment it all model), version 0.1  \n")
+    print("SIAM (Segment it all model), version 0.2  \n")
     #print("########################\n")
 
     import argparse
