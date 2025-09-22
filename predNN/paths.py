@@ -162,6 +162,33 @@ def get_model_path_and_fold(num_model:int ):
         elif num_model ==152:#do not exist (bad Skull)
             res_folder = os.path.join(nnres_path, 'Dataset715_MixSuj6', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
             out_prefix = 'pred_DS715_3ResXL'
+        elif num_model ==16:
+            res_folder = os.path.join(nnres_path, 'Dataset716_MixLowDill', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS716_NODA'
+        elif num_model ==17:
+            res_folder = os.path.join(nnres_path, 'Dataset717_MixLowDill_Ano', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS717_Ano'
+            
+        elif num_model == 1001:
+            # XXX ines tumor + ms + 716 train
+            ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
+            res_folder = os.path.join(ines_nnunet_res, 'Dataset1001_ms_tumor_MixLowDill', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS1001_ms_tumor_MixLowDill'
+        elif num_model == 1002:
+            # XXX ines (tumor + ms) without contrast constraint + 716 train : probleme plan normale pas XL
+            ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
+            res_folder = os.path.join(ines_nnunet_res, 'Dataset1002_ms_tumor_WC_MixLowDill', 'nnUNetTrainer__nnUNetPlans__3d_fullres')
+            out_prefix = "pred_DS1002_ms_tumor_MixLowDill"
+        elif num_model == 1004:
+            # XXX ines ms only without constraint : probleme plan normale pas XL
+            ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
+            res_folder = os.path.join(ines_nnunet_res, 'Dataset1004_ms_MixLowDill', 'nnUNetTrainer__nnUNetPlans__3d_fullres')
+            out_prefix = "pred_DS1004_ms_MixLowDill"
+        elif num_model == 1005:
+            # XXX ines ms only with constraint + 716
+            ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
+            res_folder = os.path.join(ines_nnunet_res, 'Dataset1005_ms_MixLowDill', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = "pred_DS1005_ms_MixLowDill"
 
 
     if isinstance(res_folder,list): #subregion or cascade
