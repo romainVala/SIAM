@@ -30,8 +30,8 @@ def main():
     parser.add_argument('-voxelsize', default=0, type=float, required=False,
                         help=" float default 0. Important for too small head size (compare to adult ) "
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
-                             "This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation "
-                             "the result is converted back to original resolution and orientation")
+                             " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
+                             "The result is converted back to original resolution and orientation")
 
     args = parser.parse_args()
 

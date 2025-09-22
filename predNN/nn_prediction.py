@@ -44,9 +44,12 @@ def convert_to_canonical_if_needed(file_list,voxel_size):
             reoriented_list.append(True)
             if voxel_size>0:
                 print(f'CHANING NIFTI voxel size to {voxel_size} saving {fo}')
-                tc.affine[0,0]=voxel_size
-                tc.affine[1,1]=voxel_size
-                tc.affine[2,2]=voxel_size
+                new_aff = tc.affine
+                new_aff[0,0]=voxel_size
+                new_aff[1,1]=voxel_size
+                new_aff[2,2]=voxel_size
+
+                tc = tio.LabelMap(tensor=tc.data, affine=new_aff)
             else:
                 print(f'cononical saving {fo}')
 
