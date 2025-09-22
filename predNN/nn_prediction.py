@@ -29,20 +29,27 @@ def get_nn_predictor(
         torch.set_num_threads(os.cpu_count())
     return predictor
 
-def convert_to_canonical_if_needed(file_list):
+def convert_to_canonical_if_needed(file_list,voxel_size):
     fout_cano = addprefixtofilenames(file_list,'toCano_')
     fin, fout = [],[]
     tcano = tio.ToCanonical()
     reoriented_list = []
     for fi,fo in zip(file_list, fout_cano):
         ti = tio.ScalarImage(fi)
-        if ti.orientation == ('R', 'A', 'S'):
+        if (ti.orientation == ('R', 'A', 'S') ) & (voxel_size==0) :
             fout.append(fi)
             reoriented_list.append(False)
         else:
             tc = tcano(ti)
             reoriented_list.append(True)
-            print(f'cononical saving {fo}')
+            if voxel_size>0:
+                print(f'CHANING NIFTI voxel size to {voxel_size} saving {fo}')
+                tc.affine[0,0]=voxel_size
+                tc.affine[1,1]=voxel_size
+                tc.affine[2,2]=voxel_size
+            else:
+                print(f'cononical saving {fo}')
+
             tc.save(fo)
             fout.append(fo)
 
@@ -54,6 +61,7 @@ def nn_predict(
         use_tta: bool = False,
         device: torch.device = torch.device('cuda'),
         num_model: int =1,
+        voxel_size=0,
         verbose: bool = False,
         num_processes_preprocessing=4,
         num_processes_segmentation_export=8,
@@ -67,7 +75,7 @@ def nn_predict(
     input_is_file = True
     if os.path.isdir(input_file_or_folder):
         input_is_file = False
-        input_files, converted_to_canonical = convert_to_canonical_if_needed(nifti_files(input_file_or_folder))
+        input_files, converted_to_canonical = convert_to_canonical_if_needed(nifti_files(input_file_or_folder),voxel_size)
         input_file_orig =  nifti_files(input_file_or_folder)
 
         # output_file_or_folder must be folder in this case
@@ -91,7 +99,7 @@ def nn_predict(
         if output_file_or_folder is not None:
             out_prefix += output_file_or_folder
 
-        input_files, converted_to_canonical = convert_to_canonical_if_needed([input_file_or_folder])
+        input_files, converted_to_canonical = convert_to_canonical_if_needed([input_file_or_folder],voxel_size)
         input_file_orig =  [input_file_or_folder]
         output_files_wanted = addprefixtofilenames(input_file_orig,out_prefix)
 
@@ -310,7 +318,14 @@ def nn_predict(
                 fo1 = fo1 + '.gz'  #force output to be in gz, important to spare disque especialy with label maps
             else:
                 ffo =  fo2+fname_ext
-            io = tr(tio.LabelMap(ffo))
+            ipred = tio.LabelMap(ffo)
+            if voxel_size>0: #change resolution back
+                ilorig = tio.LabelMap(fi1)
+                ipred.affine = ilorig.affine #WHY THIS DOES NOT WORK ? the affine is not change
+                ipred = tio.LabelMap(tensor=ipred.data, affine=ilorig.affine)
+
+            io = tr(ipred)
+
             io.save(fo1)
             print(f'removing {ffo}')
             print(f'removing {fi2}')

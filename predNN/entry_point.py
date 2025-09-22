@@ -27,7 +27,8 @@ def main():
     parser.add_argument('-m', '--model', help='Optional: For local use only : An integer to specify which model '
                                               'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
-
+    parser.add_argument('-voxelsize', default=0, type=float, required=False,
+                        help=" interger default 0. if not zero, this will set the nifit header voxel resolution to this value")
 
     args = parser.parse_args()
 
@@ -35,7 +36,8 @@ def main():
                   use_tta=not args.disable_tta,
                   device=torch.device(args.device),
                   num_model = args.model,
-                  verbose=args.verbose
+                  verbose=args.verbose,
+                  voxel_size=args.voxelsize,
                   )
 
 
