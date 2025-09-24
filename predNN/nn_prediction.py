@@ -45,11 +45,12 @@ def convert_to_canonical_if_needed(file_list,voxel_size):
             if voxel_size>0:
                 print(f'CHANING NIFTI voxel size to {voxel_size} saving {fo}')
                 new_aff = tc.affine
-                new_aff[0,0]=voxel_size
-                new_aff[1,1]=voxel_size
-                new_aff[2,2]=voxel_size
-
-                tc = tio.LabelMap(tensor=tc.data, affine=new_aff)
+                # alway >0 because tcano
+                new_aff[0,0] = voxel_size
+                new_aff[1,1] = voxel_size
+                new_aff[2,2] = voxel_size
+                tc.affine = new_aff #already load so all good
+                #tc = tio.LabelMap(tensor=tc.data, affine=new_aff)
             else:
                 print(f'cononical saving {fo}')
 
@@ -322,11 +323,13 @@ def nn_predict(
             else:
                 ffo =  fo2+fname_ext
             ipred = tio.LabelMap(ffo)
+            ipred.load() #IMPORTANT to be able to modify the affine (the affine is not set, it is read "online")
             if voxel_size>0: #change resolution back
                 ilorig = tio.LabelMap(fi1)
-                ipred.affine = ilorig.affine #WHY THIS DOES NOT WORK ? the affine is not change
-                ipred = tio.LabelMap(tensor=ipred.data, affine=ilorig.affine)
-
+                # because we are in canonical with positif diag. we need to keep  >0 value so that the reslice reoder correctly
+                ipred.affine[0, 0] = np.abs(ilorig.affine[0, 0])
+                ipred.affine[1, 1] = np.abs(ilorig.affine[1, 1])
+                ipred.affine[2, 2] = np.abs(ilorig.affine[2, 2])
             io = tr(ipred)
 
             io.save(fo1)
