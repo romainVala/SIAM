@@ -184,12 +184,18 @@ def get_model_path_and_fold(num_model:int ):
             ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
             res_folder = os.path.join(ines_nnunet_res, 'Dataset1004_ms_MixLowDill', 'nnUNetTrainer__nnUNetPlans__3d_fullres')
             out_prefix = "pred_DS1004_ms_MixLowDill"
-        elif num_model == 1005:
-            # XXX ines ms only with constraint + 716
+        elif num_model == 1006:
+            # XXX ines healthy with GM and cerb CSF push
             ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
-            res_folder = os.path.join(ines_nnunet_res, 'Dataset1005_ms_MixLowDill', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
-            out_prefix = "pred_DS1005_ms_MixLowDill"
-
+            res_folder = os.path.join(ines_nnunet_res, 'Dataset1006_Partialization_MixLowDill',
+                                      'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = "pred_DS1006_MixLow_csfPush"
+        elif num_model == 1007:
+            # XXX ines 33% healthy with GM and cerb CSF push, 33% ms and 33% of tumor
+            ines_nnunet_res = "/network/iss/cenir/analyse/irm/users/ines.khemir/nnunet/Results/"
+            res_folder = os.path.join(ines_nnunet_res, 'Dataset1007_Partialization_MixLowDill',
+                                      'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = "pred_DS1007_MixLow_csfPush_ms_tumor"
 
     if isinstance(res_folder,list): #subregion or cascade
         existing_fold = []
