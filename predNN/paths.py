@@ -69,6 +69,7 @@ def get_model_path_and_fold(num_model:int ):
         maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
 
     else:
+
         nnres_path = os.environ.get('nnUNet_results')
         if nnres_path is None:
             raise('For local modem (-m num  (with num>0) you need to specify the environement varaible  nnUNet_results')
@@ -357,7 +358,7 @@ def addprefixtofilenames(file_names,prefix):
     for ff in file_names:
         basdir = os.path.dirname(ff)
         fn = os.path.basename(ff)
-        fout.append(basdir + '/' + prefix + fn)
+        fout.append(basdir + os.sep + prefix + fn)
     return fout
 
 def get_parent_path(fin,level=1, remove_ext=False):
@@ -374,9 +375,9 @@ def get_parent_path(fin,level=1, remove_ext=False):
         concat = True
 
     for ff in fin:
-        if ff[-1]=='/':
+        if ff[-1]== os.sep : 
             ff=ff[:-1]
-        dd = ff.split('/')
+        dd = ff.split(os.sep)
         ll = len(dd)
         if remove_ext:
             dd[-1] = remove_extension(dd[-1])
@@ -386,7 +387,7 @@ def get_parent_path(fin,level=1, remove_ext=False):
             file_name.append(ss)
         else:
             file_name.append(dd[ll-level])
-        path_name.append('/'.join(dd[:ll-level]))
+        path_name.append((os.sep).join(dd[:ll-level]))
 
 
     if return_string:
