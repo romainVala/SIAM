@@ -29,11 +29,11 @@ pip version > 22 and setuptool > 61
    git clone https://github.com/romainVala/SIAM
    ```
 2. Go into the repository (the folder with the pyproject.toml file) and install:
-   optionally create a conda env before the following commande ()
+   optionally create a conda env before the following commande 
    ```
    pip install -e .
    ```
-   when testing on windows, I have to remove the -e flag ... (no idea why)
+   when testing on windows, I had to remove the -e flag ... (no idea why)
 3. Per default, model parameters will be downloaded to ~/siam_params/v0.1. If you
    wish to use a different folder, open HD_BET/paths.py in a text editor and
    modify `folder_with_parameter_files`
@@ -76,16 +76,16 @@ command:
 ```bash
 siam-pred -i INPUT_FILE_OR_FOLDER -device cpu 
 ```
-if you need to gain time, use the option `--disable_tta` will disable test time 
+if you need to gain time, use the option `--disable_tta`. It will disable test time 
 data augmentation (speedup of 8x).
 
 it should also run on mps, just specify `-device mps`
 
 ### More options:
 For very small baby brain, the total volume is too small, and you need to scale the 
-volume up, for the model to work. you can achieve it by changing nifti header voxel size
-this will be done on the fly when using the `-voxelsize x.x` where `x.x` is a float for the
-fake voxel size. Typically for newborn brain we multiply the voxel size by 1.4
+volume up, for the model to work. you can achieve it by changing nifti header voxel size.
+This will be done on the fly when using the `-voxelsize x.x` where `x.x` is a float for the
+new (fake) voxel size. Typically for newborn brain we multiply the voxel size by 1.4
 
 To summarize all inputs parameters, refer to the help functionality:
 
