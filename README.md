@@ -85,7 +85,8 @@ it should also run on mps, just specify `-device mps`
 For very small baby brain, the total volume is too small, and you need to scale the 
 volume up, for the model to work. you can achieve it by changing nifti header voxel size.
 This will be done on the fly when using the `-voxelsize x.x` where `x.x` is a float for the
-new (fake) voxel size. Typically for newborn brain we multiply the voxel size by 1.4
+new (fake) voxel size. Typically for newborn brain we multiply the voxel size by 1.4. 
+Only use if you have near isotropic resolution
 
 To summarize all inputs parameters, refer to the help functionality:
 
