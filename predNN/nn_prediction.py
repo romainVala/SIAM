@@ -325,7 +325,7 @@ def nn_predict(
             ipred = tio.LabelMap(ffo)
             ipred.load() #IMPORTANT to be able to modify the affine (the affine is not set, it is read "online")
             if voxel_size>0: #change resolution back
-                ilorig = tio.LabelMap(fi1)
+                ilorig = tio.ToCanonical()(tio.LabelMap(fi1)) #because we are in cano space
                 # because we are in canonical with positif diag. we need to keep  >0 value so that the reslice reoder correctly
                 ipred.affine[0, 0] = np.abs(ilorig.affine[0, 0])
                 ipred.affine[1, 1] = np.abs(ilorig.affine[1, 1])
