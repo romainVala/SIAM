@@ -12,7 +12,7 @@ We are greatful to [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository whic
 starting from [HD-BET](https://github.com/MIC-DKFZ/HD-BET). 
 We would also like to thank B. Billot and E. Iglesias for their initial proposition of [SynthSeg](https://github.com/BBillot/SynthSeg):
 Training on synthetic data opens avenues for robust, contrast-agnostic segmentation models.
-We built this tool upon their work, our contribution is limited to the label space: adding more labels towards a denser
+We built this tool upon their work, our contribution is mainly about improving the label space: adding more labels towards a denser
 labeling of the head
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
@@ -21,14 +21,9 @@ labeling of the head
 ## Installation Instructions
 
 Note that you need to have a python3 installation for SIAM to work. 
-We recommend installing in a virtual environment.
+pip version > 22 and setuptool > 61
 
-**Install either as a python package (TODO):**
-```bash
-#not yet available    pip install siam-predic
-```
-
-**(Recomended) install the most recent master from GitHub**
+**install the most recent master from GitHub**
 1. Clone this repository:
    ```bash
    git clone https://github.com/romainVala/SIAM
@@ -38,6 +33,7 @@ We recommend installing in a virtual environment.
    ```
    pip install -e .
    ```
+   when testing on windows, I have to remove the -e flag ... (no idea why)
 3. Per default, model parameters will be downloaded to ~/siam_params/v0.1. If you
    wish to use a different folder, open HD_BET/paths.py in a text editor and
    modify `folder_with_parameter_files`
@@ -46,8 +42,7 @@ We recommend installing in a virtual environment.
 
 Using siam-pred is straightforward. You can use it in any terminal on your linux
 system. The siam-pred command was installed automatically. We provide GPU as well
-as MPS and CPU support. Running on GPU/MPS is a lot faster and should always be
-preferred. :
+as MPS and CPU support. Running on GPU is a lot faster but it requires around 15G GPU memory :
 
 ```bash
 siam-pred -i INPUT_FILENAME 
@@ -57,9 +52,6 @@ INPUT_FILENAME must be a nifti (.nii.gz) file containing 3D MRI image data. 4D
 image sequences are not supported (however can be split upfront into the
 individual temporal volumes using fslsplit<sup>1</sup>). INPUT_FILENAME can be
 any MRI sequence. 
-Input images must match the orientation of standard MNI152
-template! Use fslreorient2std <sup>2</sup> upfront to ensure that this is the
-case.
 
 By default, siam-pred will run in GPU mode and use test time data
 augmentation by mirroring along all axes.
@@ -82,30 +74,23 @@ need quite a bit of RAM. To run on CPU, we recommend you use the following
 command:
 
 ```bash
-siam-pred -i INPUT_FILE_OR_FOLDER -device cpu --disable_tta
+siam-pred -i INPUT_FILE_OR_FOLDER -device cpu 
 ```
+if you need to gain time, use the option `--disable_tta` will disable test time 
+data augmentation (speedup of 8x).
 
-The option --disable_tta will disable test time data augmentation
-(speedup of 8x).
-
-HD-BET should also run on mps, just specify `-device mps`
+it should also run on mps, just specify `-device mps`
 
 ### More options:
+For very small baby brain, the total volume is too small, and you need to scale the 
+volume up, for the model to work. you can achieve it by changing nifti header voxel size
+this will be done on the fly when using the `-voxelsize x.x` where `x.x` is a float for the
+fake voxel size. Typically for newborn brain we multiply the voxel size by 1.4
 
-For more information, please refer to the help functionality:
+To summarize all inputs parameters, refer to the help functionality:
 
 ```bash
 siam-pred -h
 ```
 
-## FAQ
-1. **Will you provide the training code?** It's basically 
-[nnU-Net](https://github.com/MIC-DKFZ/nnUNet) plus a torchio the training data is what matter, we hope to publish them soon
-2. **What run time can I expect on CPU/GPU?** This depends on your MRI image
-   size. Typical run times (preprocessing and resampling
-   included) are just a couple of minute for GPU and about 30 Minutes on CPU
-   (using `--disable_tta`)
-
 <sup>1</sup>https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils
-
-<sup>2</sup>https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Orientation%20Explained
