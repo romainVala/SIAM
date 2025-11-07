@@ -12,8 +12,8 @@ We are greatful to [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository whic
 starting from [HD-BET](https://github.com/MIC-DKFZ/HD-BET). 
 We would also like to thank B. Billot and E. Iglesias for their initial proposition of [SynthSeg](https://github.com/BBillot/SynthSeg):
 Training on synthetic data opens avenues for robust, contrast-agnostic segmentation models.
-We built this tool upon their work, our contribution is mainly about improving the label space: adding more labels towards a denser
-labeling of the head
+We built this tool upon their work, our contribution is mainly about improving the label space: adding more labels 
+towards a denser labeling of the head
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
 
@@ -48,7 +48,7 @@ as MPS and CPU support. Running on GPU is a lot faster but it requires around 15
 siam-pred -i INPUT_FILENAME 
 ```
 
-INPUT_FILENAME must be a nifti (.nii.gz) file containing 3D MRI image data. 4D
+INPUT_FILENAME must be a nifti file containing 3D volume data. 4D
 image sequences are not supported (however can be split upfront into the
 individual temporal volumes using fslsplit<sup>1</sup>). INPUT_FILENAME can be
 any MRI sequence. 
@@ -63,9 +63,9 @@ will mitigate the overhead of loading and initializing the model for each case:
 siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX
 ```
 
-The above command will look for all nifti files (\*.nii.gz) in the INPUT_FOLDER
+The above command will look for all nifti files in the INPUT_FOLDER
 and save the predictions in a sub-folder containing the OUTPUT_PREFIX name.
-(the -o is optional)
+if `-o` is not specify, result are store in the same folder, with a prefix
 
 ### GPU is nice, but I don't have one of those... What now?
 
@@ -82,10 +82,12 @@ data augmentation (speedup of 8x).
 it should also run on mps, just specify `-device mps`
 
 ### More options:
-For very small baby brain, the total volume is too small, and you need to scale the 
-volume up, for the model to work. you can achieve it by changing nifti header voxel size.
+For very small baby brain, you need to scale the volume up, for the model to work. 
+You can achieve it, without resampling,  by changing nifti header voxel size.
 This will be done on the fly when using the `-voxelsize x.x` where `x.x` is a float for the
-new (fake) voxel size. Typically for newborn brain we multiply the voxel size by 1.4. 
+new (fake) voxel size. Typically for newborn brain we multiply the voxel size by 1.4, in order to get a 
+Total Intracranial Volume similar to an adult brain. The prediction result is then converted back to the
+original resolution
 Only use if you have near isotropic resolution
 
 To summarize all inputs parameters, refer to the help functionality:
