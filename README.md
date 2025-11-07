@@ -35,8 +35,7 @@ pip version > 22 and setuptool > 61
    ```
    when testing on windows, I had to remove the -e flag ... (no idea why)
 3. Per default, model parameters will be downloaded to ~/siam_params/v0.1. If you
-   wish to use a different folder, open HD_BET/paths.py in a text editor and
-   modify `folder_with_parameter_files`
+   wish to use a different folder, set the environement variable `SIAM_MODEL_DIR` to the path you want
 
 ## How to use it
 

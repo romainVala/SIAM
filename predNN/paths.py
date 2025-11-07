@@ -48,13 +48,24 @@ def maybe_download_parameters_tarfile(folder_with_parameter_files, ZENODO_DOWNLO
         install_model_from_tar_file(fname, folder_with_parameter_files)
         os.remove(fname)
 
+def get_siam_model_dir():
+    if 'SIAM_MODEL_DIR' in os.environ:
+        model_dir = os.environ['SIAM_MODEL_DIR']
+        if os.path.isdir(model_dir):
+            print(f"model parameter from SIAM_MODEL_DIR env variable {model_dir}")
+        else:
+            raise ValueError(f'Error the environement variable SIAM_MODEL_DIR point to a no existing dir: {model_dir}')
+    else:
+        model_dir = os.path.join(os.path.expanduser('~'), 'siam_params')
 
+    return model_dir
 
 def get_model_path_and_fold(num_model:int ):
     if num_model==-1: #get it from zenodo
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15055596/files/model_708.zip?download=1'
-        res_folder = os.path.join(os.path.expanduser('~'), 'siam_params', 'v0.1')
+        siam_model_dir = get_siam_model_dir()
+        res_folder = os.path.join(siam_model_dir, 'v0.1')
 
         out_prefix = 'siamV01_'
         maybe_download_parameters(res_folder, ZENODO_DOWNLOAD_URL)
@@ -63,7 +74,8 @@ def get_model_path_and_fold(num_model:int ):
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15780983/files/DS715_NODA.tar.gz?download=1' # https://doi.org/10.5281/zenodo.15780983
 
-        res_folder = os.path.join(os.path.expanduser('~'), 'siam_params', 'v0.2','DS715_NODA')
+        siam_model_dir = get_siam_model_dir()
+        res_folder = os.path.join(siam_model_dir, 'v0.2','DS715_NODA')
 
         out_prefix = 'siamV02_'
         maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
