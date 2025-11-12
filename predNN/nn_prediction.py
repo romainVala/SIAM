@@ -327,11 +327,12 @@ def nn_predict(
             if voxel_size>0: #change resolution back
                 ilorig = tio.ToCanonical()(tio.LabelMap(fi1)) #because we are in cano space
                 # because we are in canonical with positif diag. we need to keep  >0 value so that the reslice reoder correctly
-                ipred.affine[0, 0] = np.abs(ilorig.affine[0, 0])
-                ipred.affine[1, 1] = np.abs(ilorig.affine[1, 1])
-                ipred.affine[2, 2] = np.abs(ilorig.affine[2, 2])
+                #ipred.affine[0, 0] = np.abs(ilorig.affine[0, 0])
+                #ipred.affine[1, 1] = np.abs(ilorig.affine[1, 1])
+                #ipred.affine[2, 2] = np.abs(ilorig.affine[2, 2])
+                ipred.affine = ilorig.affine
             io = tr(ipred)
-
+            
             io.save(fo1)
             print(f'removing {ffo}')
             print(f'removing {fi2}')
