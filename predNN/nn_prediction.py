@@ -1,7 +1,7 @@
 import os.path
 import sys
 import torch, numpy as np
-from batchgenerators.utilities.file_and_folder_operations import nifti_files, join, maybe_mkdir_p, isdir
+from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkdir_p, isdir
 sys.stdout = open(os.devnull, 'w')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 sys.stdout = sys.__stdout__
@@ -79,8 +79,8 @@ def nn_predict(
     input_is_file = True
     if os.path.isdir(input_file_or_folder):
         input_is_file = False
-        input_files, converted_to_canonical = convert_to_canonical_if_needed(nifti_files(input_file_or_folder),voxel_size)
-        input_file_orig =  nifti_files(input_file_or_folder)
+        input_file_orig =  gfile(input_file_or_folder,'.*nii')
+        input_files, converted_to_canonical = convert_to_canonical_if_needed(input_file_orig,voxel_size)
 
         # output_file_or_folder must be folder in this case
         if output_file_or_folder is None:

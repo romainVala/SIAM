@@ -70,7 +70,7 @@ def get_model_path_and_fold(num_model:int ):
         out_prefix = 'siamV01_'
         maybe_download_parameters(res_folder, ZENODO_DOWNLOAD_URL)
 
-    if num_model==0: #get it from zenodo
+    elif num_model==0: #get it from zenodo
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15780983/files/DS715_NODA.tar.gz?download=1' # https://doi.org/10.5281/zenodo.15780983
 
@@ -84,7 +84,8 @@ def get_model_path_and_fold(num_model:int ):
 
         nnres_path = os.environ.get('nnUNet_results')
         if nnres_path is None:
-            raise('For local modem (-m num  (with num>0) you need to specify the environement varaible  nnUNet_results')
+            print(f'you choose num_model {num_model} For local modem (-m num  (with num>0) you need to specify the environement varaible  nnUNet_results')
+            raise('rrr')
 
         if num_model == 111:
             res_folder = os.path.join(nnres_path, 'Dataset710_Vasc2suj_v3_Region',
