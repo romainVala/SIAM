@@ -32,7 +32,7 @@ def download_file(url: str, local_filename: str, chunk_size: Optional[int] = 819
 def maybe_download_parameters(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
     if not isfile(join(folder_with_parameter_files, 'fold_0', 'checkpoint_final.pth')):
         maybe_mkdir_p(folder_with_parameter_files)
-        print(f'Downlod and install model weight in your home {folder_with_parameter_files}')
+        print(f'Downlod and install model weight in your model dir {folder_with_parameter_files}')
         print(f'Sorry the model is quite big (~5G) do not forget to delete the model folder, if no more use ')
         fname = download_file(ZENODO_DOWNLOAD_URL, join(folder_with_parameter_files, os.pardir, 'tmp_download.zip'))
         install_model_from_zip_file(fname, folder_with_parameter_files)
@@ -42,8 +42,8 @@ def maybe_download_parameters_tarfile(folder_with_parameter_files, ZENODO_DOWNLO
     if not isfile(join(folder_with_parameter_files, 'fold_0', 'checkpoint_final.pth')):
         folder_with_parameter_files = os.path.dirname(folder_with_parameter_files)
         maybe_mkdir_p(folder_with_parameter_files)
-        print(f'Downlod and install model weight in your home {folder_with_parameter_files}')
-        print(f'Sorry the model is quite big (~4G) do not forget to delete the model folder, if no more use ')
+        print(f'Downlod and install model weight in your model dirs {folder_with_parameter_files}')
+        print(f'Sorry the model is quite big (~5G) do not forget to delete the model folder, if no more use ')
         fname = download_file(ZENODO_DOWNLOAD_URL, join(folder_with_parameter_files, os.pardir, 'tmp_download.tar.gz'))
         install_model_from_tar_file(fname, folder_with_parameter_files)
         os.remove(fname)
@@ -52,15 +52,15 @@ def get_siam_model_dir():
     if 'SIAM_MODEL_DIR' in os.environ:
         model_dir = os.environ['SIAM_MODEL_DIR']
         if os.path.isdir(model_dir):
-            print(f"model parameter from SIAM_MODEL_DIR env variable {model_dir}")
+            print(f'Selecting model dir from env variable SIAM_MODEL_DIR ')
         else:
             raise ValueError(f'Error the environement variable SIAM_MODEL_DIR point to a no existing dir: {model_dir}')
     elif 'nnUNet_results' in os.environ: #just an other (natural option to quickly test fresh trained model)
+        print(f'Selecting model dir from env variable nnUNet_results ')
         model_dir = os.environ.get('nnUNet_results')
 
     else:
         model_dir = os.path.join(os.path.expanduser('~'), 'siam_params')
-
     return model_dir
 
 def get_model_path_and_fold(num_model:int ):
@@ -68,11 +68,10 @@ def get_model_path_and_fold(num_model:int ):
 
     if num_model==0: #get it from zenodo
         # the link where to get zip version of the models
-        ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/15055596/files/model_708.zip?download=1'
-        res_folder = os.path.join(siam_model_dir, 'v0.1')
-
-        out_prefix = 'siamV01_'
-        maybe_download_parameters(res_folder, ZENODO_DOWNLOAD_URL)
+        ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/17733431/files/pred_DS108_LcsfP_Ano.tar.gz?download=1'
+        res_folder = os.path.join(siam_model_dir, 'v0.3','pred_DS108_LcsfP_Ano')
+        out_prefix = 'siamV03_'
+        maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
 
     elif num_model==2: #get it from zenodo
         # the link where to get zip version of the models
@@ -207,7 +206,7 @@ def get_model_path_and_fold(num_model:int ):
             out_prefix = "pred_DS107_MixLow_csfPush_ms_tumor"
         elif num_model == 108:
             # same as 107 ep4000
-            res_folder = os.path.join(siam_model_dir, 'Dataset1007_Partialization_MixLowDill', 'nnUNetTrainerNoDA4000__nnUNetResEncUNetXLPlans__3d_fullres')
+            res_folder = os.path.join(siam_model_dir, 'Dataset1007_Partialization_MixLowDill', 'pred_DS108_LcsfP_Ano')
             out_prefix = 'pred_DS108_LcsfP_Ano'
         elif num_model == 109:
             # same as 107 ep4000
@@ -226,7 +225,8 @@ def get_model_path_and_fold(num_model:int ):
     else:
         existing_fold = get_fold_list(res_folder)
 
-        print(f'Selecting model {num_model} out {out_prefix} and found {len(existing_fold)} FOLD')
+        print(f'Selecting model {num_model} out Prefix {out_prefix} and found {len(existing_fold)} FOLD ')
+        print(f'model folder is {res_folder}')
 
     return res_folder, existing_fold, out_prefix
 

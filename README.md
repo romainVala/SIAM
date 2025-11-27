@@ -2,28 +2,31 @@
 
 This repository provides easy-to-use access to our SIAM model for inference.
 SIAM is an attempt to segment all tissue (of the human head) from any 3D volume.
-While waiting for a publication related to this work, the method is similar to
+Publication in preparation, meanwhile the method is similar to
 
     Valabregue, R., Girka, F., Pron, A., Rousseau, F., & Auzias, G. (2024).  
     "Comprehensive analysis of synthetic learning applied to neonatal brain MRI segmentation".
      Human Brain Mapping https://doi.org/10.1002/hbm.26674
 
-We are greatful to [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository which provides the code for training, and we built this inference tool
+We thank  [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository which provides the code for training, and we built this inference tool
 starting from [HD-BET](https://github.com/MIC-DKFZ/HD-BET). 
-We would also like to thank B. Billot and E. Iglesias for their initial proposition of [SynthSeg](https://github.com/BBillot/SynthSeg):
+We thanks  B. Billot and E. Iglesias for their initial proposition of [SynthSeg](https://github.com/BBillot/SynthSeg):
 Training on synthetic data opens avenues for robust, contrast-agnostic segmentation models.
-We built this tool upon their work, our contribution is mainly about improving the label space: adding more labels 
-towards a denser labeling of the head
+We built this tool upon their idea, but re-implement the synthetic generative model with
+[torchio](https://github.com/TorchIO-project/torchio) augmentations (Thanks !)
+
+Our contribution is two fold:
+1) improving the label space: adding more labels (skull/vessel/dura matter ...) towards a denser labeling of the head.
+2) adding specific label augmentation, to allow less bias predictions while training with a few subject.
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
 
 
-## Installation Instructions
+## Local Installation 
 
 Note that you need to have a python3 installation for SIAM to work. 
 pip version > 22 and setuptool > 61
 
-**install the most recent master from GitHub**
 1. Clone this repository:
    ```bash
    git clone https://github.com/romainVala/SIAM
@@ -36,6 +39,8 @@ pip version > 22 and setuptool > 61
    when testing on windows, I had to remove the -e flag ... (no idea why)
 3. Per default, model parameters will be downloaded to ~/siam_params/v0.1. If you
    wish to use a different folder, set the environement variable `SIAM_MODEL_DIR` to the path you want
+
+
 
 ## How to use it
 
@@ -52,11 +57,9 @@ image sequences are not supported (however can be split upfront into the
 individual temporal volumes using fslsplit<sup>1</sup>). INPUT_FILENAME can be
 any MRI sequence. 
 
-By default, siam-pred will run in GPU mode and use test time data
-augmentation by mirroring along all axes.
 
 For batch processing it is faster to process an entire folder at once as this
-will mitigate the overhead of loading and initializing the model for each case:
+will mitigate the overhead of loading and initializing the model for each case (at least if you have GPU)
 
 ```bash
 siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX
@@ -66,17 +69,6 @@ The above command will look for all nifti files in the INPUT_FOLDER
 and save the predictions in a sub-folder containing the OUTPUT_PREFIX name.
 if `-o` is not specify, result are store in the same folder, with a prefix
 
-### GPU is nice, but I don't have one of those... What now?
-
-siam-pred has CPU support. Running on CPU takes a lot longer though and you will
-need quite a bit of RAM. To run on CPU, we recommend you use the following
-command:
-
-```bash
-siam-pred -i INPUT_FILE_OR_FOLDER -device cpu 
-```
-
-it should also run on mps, just specify `-device mps`
 
 ### More options:
 For very small baby brain, you need to scale the volume up, for the model to work. 
@@ -93,4 +85,16 @@ To summarize all inputs parameters, refer to the help functionality:
 siam-pred -h
 ```
 
-<sup>1</sup>https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils
+## Docker or Singularity
+   ```bash
+   docker pull nipreps/fmriprep 
+   ```
+   
+   Or with Singularity
+   ```bash
+  singularity build siam_v0.3.simg romainvalabregue/siam
+   ```
+   Example to run with gpu ()
+   ```bash
+  singularity run --nv -B `pwd`:/data   -i /data/my_image.nii.gz 
+   ```
