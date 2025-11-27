@@ -18,9 +18,9 @@ def main():
     parser.add_argument('-device', default='cuda', type=str, required=False,
                         help='used to set on which device the prediction will run. Can be \'cuda\' (=GPU), \'cpu\' or '
                              '\'mps\'. Default: cuda')
-    parser.add_argument('--disable_tta', required=False, action='store_true',
-                        help='Set this flag to disable test time augmentation. This will make prediction faster at a '
-                             'slight decrease in prediction quality. Recommended for device cpu')
+    #parser.add_argument('--disable_tta', required=False, action='store_true',
+    #                    help='Set this flag to disable test time augmentation. This will make prediction faster at a '
+    #                         'slight decrease in prediction quality. Recommended for device cpu')
 
     parser.add_argument('--verbose', action='store_true', required=False,
                         help="Talk to me.")
