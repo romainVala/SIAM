@@ -75,8 +75,6 @@ command:
 ```bash
 siam-pred -i INPUT_FILE_OR_FOLDER -device cpu 
 ```
-if you need to gain time, use the option `--disable_tta`. It will disable test time 
-data augmentation (speedup of 8x).
 
 it should also run on mps, just specify `-device mps`
 
