@@ -2,6 +2,20 @@ import torch
 
 from SIAMpred.nn_prediction import nn_predict
 
+def test_cuda_memory_greate_than(min_memory_GB=12):
+    cuda_ok=torch.cuda.is_available()
+    if cuda_ok:
+        mem_use,mem_tot = torch.cuda.mem_get_info()
+        mem_disp = (mem_tot - mem_use) / 1024**3
+        if mem_disp < min_memory_GB:
+            cuda_ok = False
+            print(f' NOT enought GPU mem disponible {mem_disp} over {mem_tot/1024**3} ')
+        else :
+            print(f' Cuda memory available is {mem_disp}')
+    else :
+        print(f'NO cuda is_available')
+    return cuda_ok
+
 def main():
     #print("\n########################")
     print("SIAM: Segment it all model, version 0.2  \n")
@@ -35,9 +49,16 @@ def main():
 
     args = parser.parse_args()
 
+    device_arg = args.device
+    if device_arg=='cuda':
+        check_mem = test_cuda_memory_greate_than()
+        if check_mem is False:
+            print(f'Warning : forcing to cpu')
+            device_arg = 'cpu'
+
     nn_predict(args.input,args.output,
-                  use_tta=not args.disable_tta,
-                  device=torch.device(args.device),
+                  use_tta=False, #not args.disable_tta,
+                  device=torch.device(device_arg),
                   num_model = args.model,
                   verbose=args.verbose,
                   voxel_size=args.voxelsize,
