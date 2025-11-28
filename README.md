@@ -1,13 +1,13 @@
 # SIAM
 
-**Segment It All Model** — a head tissue segmentation tool designed to be robust to contrast, resolution, and pathology.
+SIAM : **Segment It All Model** a head tissue segmentation tool designed to be robust to contrast, resolution, and pathology.
 It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
 The current version performs **tissue segmentation only**, including:
-**17 tissues** — WM anomalies, skull, vessels, dura mater, head,
+17 tissues : WM anomalies, skull, vessels, dura mater, head,
 and brain tissues: WM, GM, CSF, cerebellum, ventricles, 5 deep nuclei, hippocampus, and amygdala.
 
-Stay tuned — we plan to add the region / sub-region segmentation task soon.
+Stay tuned, we plan to add the region / sub-region segmentation task soon.
 
 A publication is currently in preparation. In the meantime, the method is similar to:
 
