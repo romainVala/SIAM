@@ -1,23 +1,28 @@
-# SIAM 
+# SIAM
 
-This repository provides easy-to-use access to our SIAM model for inference.
-SIAM is an attempt to segment all tissue (of the human head) from any 3D volume.
-Publication in preparation, meanwhile the method is similar to
+**Segment It All Model** — a head tissue segmentation tool designed to be robust to contrast, resolution, and pathology.
+It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
-    Valabregue, R., Girka, F., Pron, A., Rousseau, F., & Auzias, G. (2024).  
-    "Comprehensive analysis of synthetic learning applied to neonatal brain MRI segmentation".
-     Human Brain Mapping https://doi.org/10.1002/hbm.26674
+The current version performs **tissue segmentation only**, including:
+**17 tissues** — WM anomalies, skull, vessels, dura mater, head,
+and brain tissues: WM, GM, CSF, cerebellum, ventricles, 5 deep nuclei, hippocampus, and amygdala.
 
-We thank  [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) repository which provides the code for training, and we built this inference tool
-starting from [HD-BET](https://github.com/MIC-DKFZ/HD-BET). 
-We thanks  B. Billot and E. Iglesias for their initial proposition of [SynthSeg](https://github.com/BBillot/SynthSeg):
-Training on synthetic data opens avenues for robust, contrast-agnostic segmentation models.
-We built this tool upon their idea, but re-implement the synthetic generative model with
-[torchio](https://github.com/TorchIO-project/torchio) augmentations (Thanks !)
+Stay tuned — we plan to add the region / sub-region segmentation task soon.
 
-Our contribution is two fold:
-1) improving the label space: adding more labels (skull/vessel/dura matter ...) towards a denser labeling of the head.
-2) adding specific label augmentation, to allow less bias predictions while training with a few subject.
+A publication is currently in preparation. In the meantime, the method is similar to:
+
+> Valabregue, R., Girka, F., Pron, A., Rousseau, F., & Auzias, G. (2024).
+> *Comprehensive analysis of synthetic learning applied to neonatal brain MRI segmentation*.
+> Human Brain Mapping. [https://doi.org/10.1002/hbm.26674](https://doi.org/10.1002/hbm.26674)
+
+We thank the [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) team for providing the training framework,
+and we built this inference tool based on [HD-BET](https://github.com/MIC-DKFZ/HD-BET).
+
+We also thank B. Billot and E. Iglesias for their original [SynthSeg](https://github.com/BBillot/SynthSeg) method:
+training on synthetic data enables robust, contrast-agnostic segmentation models.
+Our tool is inspired by their approach, but we reimplemented the synthetic data generator using
+[torchio](https://github.com/TorchIO-project/torchio) augmentations.
+
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
 
