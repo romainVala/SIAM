@@ -92,7 +92,7 @@ siam-pred -h
 
 ## Docker or Singularity
    ```bash
-   docker pull nipreps/fmriprep 
+   docker pull romainvalabregue/siam 
    ```
    
    Or with Singularity
