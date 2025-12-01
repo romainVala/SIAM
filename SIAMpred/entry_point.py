@@ -5,8 +5,8 @@ from SIAMpred.nn_prediction import nn_predict
 def test_cuda_memory_greate_than(min_memory_GB=12):
     cuda_ok=torch.cuda.is_available()
     if cuda_ok:
-        mem_use,mem_tot = torch.cuda.mem_get_info()
-        mem_disp = (mem_tot - mem_use) / 1024**3
+        mem_disp,mem_tot = torch.cuda.mem_get_info()
+        mem_disp = mem_disp / 1024**3
         if mem_disp < min_memory_GB:
             cuda_ok = False
             print(f' NOT enought GPU mem disponible {mem_disp} over {mem_tot/1024**3} ')
