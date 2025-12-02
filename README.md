@@ -42,8 +42,9 @@ pip version > 22 and setuptool > 61
    pip install -e .
    ```
    when testing on windows, I had to remove the -e flag ... (no idea why)
-3. Per default, model parameters will be downloaded to ~/siam_params/v0.1. If you
-   wish to use a different folder, set the environement variable `SIAM_MODEL_DIR` to the path you want
+3. Per default, model parameters will be downloaded to ~/siam_params/v0.x there first time If you
+   run an inference. If the installation is for multiple user, setup the environement variable `SIAM_MODEL_DIR` 
+   and run `python /instal_dir/SIAMpred/download_model_weights.py ` and add an export `SIAM_MODEL_DIR` before runing the main commande `siam-pred`
 
 
 
