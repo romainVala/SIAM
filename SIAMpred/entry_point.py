@@ -46,6 +46,8 @@ def main():
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
+    parser.add_argument('-nbthread', default=4, type=int, required=False,
+                        help=" number of thread used by nnunet for prediction, default is 4, reduce if memory issues")
 
     args = parser.parse_args()
 
@@ -57,12 +59,14 @@ def main():
             device_arg = 'cpu'
 
     nn_predict(args.input,args.output,
-                  use_tta=False, #not args.disable_tta,
-                  device=torch.device(device_arg),
-                  num_model = args.model,
-                  verbose=args.verbose,
-                  voxel_size=args.voxelsize,
-                  )
+               use_tta=False, #not args.disable_tta,
+               device=torch.device(device_arg),
+               num_model = args.model,
+               verbose=args.verbose,
+               voxel_size=args.voxelsize,
+               num_processes_preprocessing=args.nbthread,
+               num_processes_segmentation_export=args.nbthread
+               )
 
 
 if __name__ == '__main__':
