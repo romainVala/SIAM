@@ -57,7 +57,7 @@ def main():
             print(f'Warning : forcing to cpu')
             device_arg = 'cpu'
 
-    #arrg, not sure how to force nnunet to really use the request nbthread
+    #arrg, not sure how to force nnunet to really use the request nbthread it is still using the env variable
     os.environ['nnUNet_def_n_proc'] = str(args.nbthread)
     # I put the import here so the default_num_processes set by nnunet does use the env set done here
     from SIAMpred.nn_prediction import nn_predict
