@@ -86,6 +86,8 @@ Total Intracranial Volume similar to an adult brain. The prediction result is th
 original resolution
 Only use if you have near isotropic resolution
 
+Use `-nbthread 1` if you run with memory issues. This will reduce the number of thread for processing your input (default is 4) 
+ 
 To summarize all inputs parameters, refer to the help functionality:
 
 ```bash
@@ -105,3 +107,17 @@ siam-pred -h
    ```bash
   singularity run --nv -B `pwd`:/data   -i /data/my_image.nii.gz 
    ```
+## Memory issues
+the docker image is quite big, 15 G (but it include the model weight)
+when using a local version, the model weights (~5G) will be download at first usage, 
+
+Running with GPU requires more than 12 G on the GPU card
+
+Execution time, and Memory usage will depend on the input image Field Of View (FOV). 
+The input resolution do not matter too much since it is resliced to 0.75 mm resolution. 
+So only the FOV will change the total datasize that will be feed into the network. 
+
+With a large FOV, covering the nec : 166x240x256 mm^3, 
+running with  `-device cpu -nbthread 8` took ~ 25 mn (seems to take ~ 20G of RAM)
+running with  `-device cpu -nbthread 1` took ~ 2h30  (seems to take ~ 20G of RAM)
+
