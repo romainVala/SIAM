@@ -107,6 +107,13 @@ siam-pred -h
    ```bash
   singularity run --nv -B `pwd`:/data   -i /data/my_image.nii.gz 
    ```
+   For linux user, with limited disk space on $HOME or on /tmp, you can set following environement variable to location with enough space
+   `export SINGULARITY_TMPDIR=/data/singularity`
+   `export SINGULARITY_TMPDIR=/data/singularity`
+   image will be ~10G and cache dir ~ 10G (can be removed after) tmp dir ~32G (but automaticaly deleted )
+
+   (may be also DOCKER_CONFIG=  is you do not want to use the .docker in your home)
+
 ## Memory issues
 the docker image is quite big, 15 G (but it include the model weight)
 when using a local version, the model weights (~5G) will be download at first usage, 
@@ -118,6 +125,8 @@ The input resolution do not matter too much since it is resliced to 0.75 mm reso
 So only the FOV will change the total datasize that will be feed into the network. 
 
 With a large FOV, covering the nec : 166x240x256 mm^3, 
+
 running with  `-device cpu -nbthread 8` took ~ 25 mn (seems to take ~ 20G of RAM)
+
 running with  `-device cpu -nbthread 1` took ~ 2h30  (seems to take ~ 20G of RAM)
 
