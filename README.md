@@ -105,7 +105,7 @@ siam-pred -h
    ```
    Example to run with gpu ()
    ```bash
-  singularity run --nv -B `pwd`:/data   -i /data/my_image.nii.gz 
+  singularity run --nv -B `pwd`:/data  siam_v0.3.simg siam-pred  -i /data/my_image.nii.gz 
    ```
    For linux user, with limited disk space on $HOME or on /tmp, you can set following environement variable to location with enough space
    ```bash
