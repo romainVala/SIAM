@@ -129,5 +129,4 @@ With a large FOV, covering the nec : 166x240x256 mm^3,
 
 running with  `-device cpu -nbthread 8` took ~ 25 mn (seems to take ~ 20G of RAM)
 
-running with  `-device cpu -nbthread 1` took ~ 2h30  (seems to take ~ 20G of RAM)
-
+running with  `-device cpu -nbthread 1` took ~ 2h30  
