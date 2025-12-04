@@ -1,5 +1,5 @@
 import torch,os
-
+from . import __version__
 
 def test_cuda_memory_greate_than(min_memory_GB=12):
     cuda_ok=torch.cuda.is_available()
@@ -17,7 +17,7 @@ def test_cuda_memory_greate_than(min_memory_GB=12):
 
 def main():
     #print("\n########################")
-    print("SIAM: Segment it all model, version 0.2  \n")
+    print(f"SIAM: Segment it all model, version {__version__}  \n")
     #print("########################\n")
 
     import argparse
