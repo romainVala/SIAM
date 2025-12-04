@@ -118,8 +118,6 @@ siam-pred -h
 
 
 ## Memory issues
-the docker image is quite big, 15 G (but it include the model weight)
-when using a local version, the model weights (~5G) will be download at first usage, 
 
 Running with GPU requires more than 12 G on the GPU card
 
