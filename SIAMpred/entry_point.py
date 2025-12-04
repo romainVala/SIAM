@@ -1,6 +1,5 @@
-import torch
+import torch,os
 
-from SIAMpred.nn_prediction import nn_predict
 
 def test_cuda_memory_greate_than(min_memory_GB=12):
     cuda_ok=torch.cuda.is_available()
@@ -46,7 +45,7 @@ def main():
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
-    parser.add_argument('-nbthread', default=4, type=int, required=False,
+    parser.add_argument('-nbthread', default=8, type=int, required=False,
                         help=" number of thread used by nnunet for prediction, default is 4, reduce if memory issues on cpu")
 
     args = parser.parse_args()
@@ -57,6 +56,11 @@ def main():
         if check_mem is False:
             print(f'Warning : forcing to cpu')
             device_arg = 'cpu'
+
+    #arrg, not sure how to force nnunet to really use the request nbthread
+    os.environ['nnUNet_def_n_proc'] = str(args.nbthread)
+    # I put the import here so the default_num_processes set by nnunet does use the env set done here
+    from SIAMpred.nn_prediction import nn_predict
 
     nn_predict(args.input,args.output,
                use_tta=False, #not args.disable_tta,
