@@ -99,7 +99,7 @@ siam-pred -h
    
    Or with Singularity
    ```bash
-  singularity build siam_v0.3.simg romainvalabregue/siam
+  singularity build siam_v0.3.simg docker://romainvalabregue/siam
    ```
    Example to run with gpu ()
    ```bash
