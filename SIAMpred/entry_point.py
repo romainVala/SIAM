@@ -47,7 +47,7 @@ def main():
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
     parser.add_argument('-nbthread', default=4, type=int, required=False,
-                        help=" number of thread used by nnunet for prediction, default is 4, reduce if memory issues")
+                        help=" number of thread used by nnunet for prediction, default is 4, reduce if memory issues on cpu")
 
     args = parser.parse_args()
 
