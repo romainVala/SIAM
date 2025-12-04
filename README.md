@@ -108,11 +108,14 @@ siam-pred -h
   singularity run --nv -B `pwd`:/data   -i /data/my_image.nii.gz 
    ```
    For linux user, with limited disk space on $HOME or on /tmp, you can set following environement variable to location with enough space
-   `export SINGULARITY_TMPDIR=/data/singularity/tpm`
-   `export SINGULARITY_CACHEDIR=/data/singularity/cache`
+   ```bash
+   export SINGULARITY_TMPDIR=/data/singularity/tpm
+   export SINGULARITY_CACHEDIR=/data/singularity/cache
+   ```
+   (may be also DOCKER_CONFIG=  is you do not want to use the .docker in your home)
+
    image will be ~10G and cache dir ~ 10G (can be removed after) tmp dir ~32G (but automaticaly deleted )
 
-   (may be also DOCKER_CONFIG=  is you do not want to use the .docker in your home)
 
 ## Memory issues
 the docker image is quite big, 15 G (but it include the model weight)
