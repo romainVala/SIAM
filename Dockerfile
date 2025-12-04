@@ -33,8 +33,10 @@ RUN pip install --no-cache-dir /app \
     && find /opt/conda/lib/python3.11 -type f -name "*.pyc" -delete \
     && find /opt/conda/lib/python3.11 -type f -name "*.pyo" -delete
 
+RUN echo "force rebuild from here (3)"
+
 RUN mkdir -p /model_weights \
-    && python /app/SIAMpred/download_model_weights.py \
+    && python /app/SIAMpred/download_model_weights.py
 
 
 # CMD ["siam-pred"]
