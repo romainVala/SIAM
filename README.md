@@ -7,12 +7,11 @@ The current version performs **tissue segmentation**, including:
 17 tissues : WM anomalies, skull, vessels, dura mater, head,
 and brain tissues: WM, GM, CSF, cerebellum, ventricles, 5 deep nuclei, hippocampus, and amygdala.
 
-Stay tuned, we plan to add the region / sub-region segmentation task soon.
 
 The following publicaiton describe the methode used and the results where obtained with model 2 (-m 2)
 
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
-> *SIAM: : Head and Brain MRI Segmentation from Few High-Quality Templates via Synthetic Training.
+> _SIAM : Head and Brain MRI Segmentation from Few High-Quality Templates via Synthetic Training._
 > ArXiv. [https://arxiv.org/abs/2605.02737)
 
 We thank the [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) team for providing the training framework,
