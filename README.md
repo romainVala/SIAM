@@ -3,25 +3,20 @@
 SIAM : **Segment It All Model** a head tissue segmentation model designed to be robust to contrast, resolution, and **pathology**.
 It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
-The current version performs **tissue segmentation**, including:
+The current version performs **tissue segmentation**, at 0.75 mm including:
 17 tissues : WM anomalies, skull, vessels, dura mater, head,
 and brain tissues: WM, GM, CSF, cerebellum, ventricles, 5 deep nuclei, hippocampus, and amygdala.
 
+Model 1 is performing a 39 regions segmentation, as illustrated in the figure. It is trained on 3 subjects
+Model 2 is described [here](https://arxiv.org/abs/2605.02737), trained from 6 high-quality templates
+it shows great performance in healthy brain for tissue segmentation (12 brain tissue + head\/skull\/dura matter\/vessel)
+Model 3 extends siam's robustness toward anatomical anomalies, which are segmented as an extra label.  
 
-The following publicaiton describe the methode used and the results where obtained with model 2 (-m 2)
+The following publicaiton describe  . It demonstrates good  sensitivity to  matter atrophy sensitivity to cthe model 2 
 
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
 > _SIAM : Head and Brain MRI Segmentation from Few High-Quality Templates via Synthetic Training._
 > ArXiv. [https://arxiv.org/abs/2605.02737)
-
-We thank the [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) team for providing the training framework,
-and we built this inference tool based on [HD-BET](https://github.com/MIC-DKFZ/HD-BET).
-
-We also thank B. Billot and E. Iglesias for their original [SynthSeg](https://github.com/BBillot/SynthSeg) method:
-training on synthetic data enables robust, contrast-agnostic segmentation models.
-Our tool is inspired by their approach, but we reimplemented the synthetic data generator using
-[torchio](https://github.com/TorchIO-project/torchio) augmentations.
-
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
 
@@ -50,31 +45,22 @@ pip version > 22 and setuptool > 61
 
 ## How to use it
 
-Using siam-pred is straightforward. You can use it in any terminal on your linux
-system. The siam-pred command was installed automatically. We provide GPU as well
-as MPS and CPU support. Running on GPU is a lot faster but it requires around 15G GPU memory :
 
 ```bash
 siam-pred -i INPUT_FILENAME 
 ```
 
-INPUT_FILENAME must be a nifti file containing 3D volume data. 4D
-image sequences are not supported (however can be split upfront into the
-individual temporal volumes using fslsplit<sup>1</sup>). INPUT_FILENAME can be
-any MRI sequence. 
+INPUT_FILENAME must be a nifti file containing 3D volume data. 4D image sequences are not supported 
 
-
-For batch processing it is faster to process an entire folder at once as this
-will mitigate the overhead of loading and initializing the model for each case (at least if you have GPU)
 
 ```bash
-siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX
+siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX -m 3
 ```
 
 The above command will look for all nifti files in the INPUT_FOLDER
 and save the predictions in a sub-folder containing the OUTPUT_PREFIX name.
 if `-o` is not specify, result are store in the same folder, with a prefix
-
+-m model number (default 3, int within [1 2 3] )
 
 ### More options:
 For very small baby brain, you need to scale the volume up, for the model to work. 
@@ -129,3 +115,15 @@ With a large FOV, covering the nec : 166x240x256 mm^3,
 running with  `-device cpu -nbthread 8` took ~ 25 mn (seems to take ~ 20G of RAM)
 
 running with  `-device cpu -nbthread 1` took ~ 2h20  (but sill ~17 G of RAM ... not sure why)
+
+
+## Thanks
+We thank the [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) team for providing the training framework,
+and we built this inference tool based on [HD-BET](https://github.com/MIC-DKFZ/HD-BET).
+
+We thank B. Billot and E. Iglesias for their original [SynthSeg](https://github.com/BBillot/SynthSeg) method:
+training on synthetic data enables robust, contrast-agnostic segmentation models.
+It worth the try, and we are still working to improve it, adding more tissue, being robust to anomalies
+
+Thanks to Fernando and its [torchio](https://github.com/TorchIO-project/torchio) lib ! my favorite 3D augmentation tools which we used to build the generative model.
+
