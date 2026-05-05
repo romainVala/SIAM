@@ -3,16 +3,16 @@
 SIAM : **Segment It All Model** a head tissue segmentation model designed to be robust to contrast, resolution, and **pathology**.
 It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
-The current version performs **tissue segmentation**, at 0.75 mm including:
-17 tissues : WM anomalies, skull, vessels, dura mater, head,
-and brain tissues: WM, GM, CSF, cerebellum, ventricles, 5 deep nuclei, hippocampus, and amygdala.
+The current version performs **tissue segmentation**, at 0.75 mm
 
-Model 1 is performing a 39 regions segmentation, as illustrated in the figure. It is trained on 3 subjects
+Model 1 is performing a 39 regions segmentation task, as illustrated in the figure. It is trained on 3 subjects
+
 Model 2 is described [here](https://arxiv.org/abs/2605.02737), trained from 6 high-quality templates
 it shows great performance in healthy brain for tissue segmentation (12 brain tissue + head\/skull\/dura matter\/vessel)
-Model 3 extends siam's robustness toward anatomical anomalies, which are segmented as an extra label.  
 
-The following publicaiton describe  . It demonstrates good  sensitivity to  matter atrophy sensitivity to cthe model 2 
+Model 3 extends siam's robustness toward anatomical **anomalies**, which are segmented as an extra label.  
+
+
 
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
 > _SIAM : Head and Brain MRI Segmentation from Few High-Quality Templates via Synthetic Training._
