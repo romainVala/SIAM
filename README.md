@@ -1,6 +1,6 @@
 # SIAM
 
-SIAM : **Segment It All Model** a head tissue segmentation tool designed to be robust to contrast, resolution, and **pathology**.
+SIAM : **Segment It All Model** a head tissue segmentation model designed to be robust to contrast, resolution, and **pathology**.
 It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
 The current version performs **tissue segmentation**, including:
@@ -9,11 +9,11 @@ and brain tissues: WM, GM, CSF, cerebellum, ventricles, 5 deep nuclei, hippocamp
 
 Stay tuned, we plan to add the region / sub-region segmentation task soon.
 
-A publication is currently in preparation. In the meantime, the method is similar to:
+The following publicaiton describe the methode used and the results where obtained with model 2 (-m 2)
 
-> Valabregue, R., Girka, F., Pron, A., Rousseau, F., & Auzias, G. (2024).
-> *Comprehensive analysis of synthetic learning applied to neonatal brain MRI segmentation*.
-> Human Brain Mapping. [https://doi.org/10.1002/hbm.26674](https://doi.org/10.1002/hbm.26674)
+> Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
+> *SIAM: : Head and Brain MRI Segmentation from Few High-Quality Templates via Synthetic Training.
+> ArXiv. [https://arxiv.org/abs/2605.02737)
 
 We thank the [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) team for providing the training framework,
 and we built this inference tool based on [HD-BET](https://github.com/MIC-DKFZ/HD-BET).
