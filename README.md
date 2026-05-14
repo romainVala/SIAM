@@ -5,11 +5,11 @@ It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
 The current version performs **tissue segmentation**, at 0.75 mm
 
-Model 1 is performing a 39 regions segmentation task, as illustrated in the figure. It is an old version trained on 3 subjects, but may be interesting for extra-cerebral [labels](labels.json) 
+- **Model 1** (-m 1) is performing a 39 regions segmentation task, as illustrated in the figure. It is an old version trained on 3 subjects, but may be interesting for extra-cerebral [labels](labels.json) 
 
-Model 2 is described [here](https://arxiv.org/abs/2605.02737), trained from 6 high-quality templates it shows great performance in healthy brain for tissue segmentation (12 brain tissue + head\/skull\/dura matter\/vessel)
+- **Model 2** (-m 2) is described [here](https://arxiv.org/abs/2605.02737), trained from 6 high-quality templates it shows great performance in healthy brain for tissue segmentation (12 brain tissue + head\/skull\/dura matter\/vessel)
 
-Model 3 is the defautl, and it extends siam's robustness toward anatomical **anomalies**, which are segmented as an extra [Label](labels.json).  
+- **Model 3** (defautl or -m 0), extends siam's v2 robustness toward anatomical **anomalies**, which are segmented as an extra [Label](labels.json).  
 
 
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
