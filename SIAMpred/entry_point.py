@@ -51,11 +51,24 @@ def main():
     args = parser.parse_args()
 
     device_arg = args.device
-    if device_arg=='cuda':
+    if device_arg == 'cuda':
         check_mem = test_cuda_memory_greate_than()
         if check_mem is False:
-            print(f'Warning : forcing to cpu')
+            if torch.backends.mps.is_available():
+                print('Falling back to Apple Metal (MPS)')
+                device_arg = 'mps'
+            else:
+                print('Warning : forcing to cpu')
+                device_arg = 'cpu'
+
+    if device_arg == 'mps':
+        if not torch.backends.mps.is_available():
+            print('MPS not available on this system; forcing to cpu')
             device_arg = 'cpu'
+        else:
+            # A handful of 3D ops aren't implemented on Metal yet; let them
+            # transparently fall back to CPU instead of crashing.
+            os.environ.setdefault('PYTORCH_ENABLE_MPS_FALLBACK', '1')
 
     #arrg, not sure how to force nnunet to really use the request nbthread it is still using the env variable
     os.environ['nnUNet_def_n_proc'] = str(args.nbthread)

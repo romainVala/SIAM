@@ -8,7 +8,40 @@ sys.stdout = sys.__stdout__
 from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile
 import json, re
 import torchio as tio
-from scipy.ndimage import binary_dilation
+
+#from scipy.ndimage import binary_dilation
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def _filter_stdout(drop_substrings):
+    """Suppress stdout lines containing any of the given substrings."""
+    real = sys.stdout
+
+    class _Filter:
+        def __init__(self):
+            self._buf = ''
+
+        def write(self, s):
+            self._buf += s
+            while '\n' in self._buf:
+                line, self._buf = self._buf.split('\n', 1)
+                if not any(sub in line for sub in drop_substrings):
+                    real.write(line + '\n')
+
+        def flush(self):
+            if self._buf and not any(sub in self._buf for sub in drop_substrings):
+                real.write(self._buf)
+            self._buf = ''
+            real.flush()
+
+    sys.stdout = _Filter()
+    try:
+        yield
+    finally:
+        sys.stdout.flush()
+        sys.stdout = real
 
 def get_nn_predictor(
         use_tta: bool = False,
@@ -16,17 +49,21 @@ def get_nn_predictor(
         verbose: bool = False
 ):
     os.environ['nnUNet_compile'] = 'F'
-    predictor = nnUNetPredictor(
-        tile_step_size=0.5,
-        use_gaussian=True,
-        use_mirroring=use_tta,
-        perform_everything_on_device=True,
-        device=device,
-        verbose=verbose,
-        verbose_preprocessing=verbose
-    )
+    # nnUNet only honours perform_everything_on_device on CUDA, and prints
+    # the same warning unconditionally on non-CUDA devices regardless of the
+    # value we pass. Silence just that one line here.
+    with _filter_stdout(['perform_everything_on_device=True is only supported for cuda']):
+        predictor = nnUNetPredictor(
+            tile_step_size=0.5,
+            use_gaussian=True,
+            use_mirroring=use_tta,
+            perform_everything_on_device=(device.type == 'cuda'),
+            device=device,
+            verbose=verbose,
+            verbose_preprocessing=verbose
+        )
 
-    if device == torch.device('cpu'):
+    if device.type == 'cpu':
         torch.set_num_threads(os.cpu_count())
     return predictor
 

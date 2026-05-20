@@ -100,6 +100,25 @@ siam-pred -h
    image will be ~10G and cache dir ~ 10G (can be removed after) tmp dir ~32G (but automaticaly deleted )
 
 
+## Apple Silicon (Metal / MPS)
+
+On Apple Silicon (M1–M4) the model can run on the integrated GPU via PyTorch's
+Metal backend. Either request it explicitly:
+
+```bash
+siam-pred -i INPUT_FILENAME -device mps -nbthread 1
+```
+
+or just leave `-device cuda` as-is: when CUDA isn't available, SIAM now falls
+back to MPS automatically (and only to CPU if MPS is also unavailable). A few
+3D ops aren't implemented on Metal yet; `PYTORCH_ENABLE_MPS_FALLBACK=1` is
+set automatically so those transparently run on CPU.
+
+Note that nnU-Net's sliding-window inference moves tiles between device and
+host on non-CUDA backends, so MPS is faster than CPU but not as fast as CUDA.
+On a 48 GB unified-memory machine, use `-nbthread 1` or `2` to avoid OOM
+kills from parallel worker processes.
+
 ## Memory issues
 
 Running with GPU requires more than 12 G on the GPU card
