@@ -8,6 +8,7 @@ sys.stdout = sys.__stdout__
 from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile
 import json, re
 import torchio as tio
+from scipy.ndimage import binary_dilation
 
 def get_nn_predictor(
         use_tta: bool = False,
@@ -29,8 +30,9 @@ def get_nn_predictor(
         torch.set_num_threads(os.cpu_count())
     return predictor
 
-def convert_to_canonical_if_needed(file_list,voxel_size):
-    fout_cano = addprefixtofilenames(file_list,'toCano_')
+def convert_to_canonical_if_needed(file_list,voxel_size, fout_cano=None):
+    if fout_cano is None:
+        fout_cano = addprefixtofilenames(file_list,'toCano_')
     fin, fout = [],[]
     tcano = tio.ToCanonical()
     reoriented_list = []
@@ -139,7 +141,7 @@ def nn_predict(
             file_basname = os.path.basename(oo)
             file_basname = file_basname[len(out_prefix):]
             #file_basname = file_basname[:-12] + '.nii.gz' no more extension
-            file_basname = file_basname[:-5]
+            #file_basname = file_basname[:-5]
             output_files_first_stage.append( os.path.join(dirout1, file_basname) )
         print(f'first output file is {output_files_first_stage}')
         predictor.initialize_from_trained_model_folder(
@@ -170,7 +172,8 @@ def nn_predict(
 
             dirout_list = [os.path.join(dirout1,f'pred_{reg}') for reg in region]
 
-            #make region prediction
+            #make region prediction, first pre
+            crop_to_mask=True
             next_input_file = [[] for mm in region]
             for fin,fo in zip(input_files,output_files_first_stage):
                 fname = get_parent_path(fin)[1]
@@ -181,15 +184,27 @@ def nn_predict(
                 fname_noext = fname_noext if fname_noext.endswith('_0000') else fname_noext+'_0000'
                 fo = fo + fname_ext
                 il = tio.LabelMap(fo)
+
                 for ii, (reg, dirout2) in enumerate( zip(region, dirout_list) ):
                     data = il.data == dic_lab[reg]
                     iout = tio.LabelMap(tensor=data, affine=il.affine)
                     maybe_mkdir_p(dirout2)
                     fname1 = os.path.join(dirout2, fname_noext + fname_ext)
-                    fname2 = os.path.join(dirout2, fname_noext[:-1] + '1' + fname_ext )
-                    if not os.path.isfile(fname1):
-                        os.symlink(fin, fname1)
-                    iout.save(fname2)
+                    fname2 = os.path.join(dirout2, fname_noext[:-1] + '1' + fname_ext)
+                    if crop_to_mask :
+                        #datadill = torch.tensor(binary_dilation(data.numpy().astype('float64'), iterations=4))
+                        #imask = tio.LabelMap(tensor=datadill.unsqueeze(0), affine=il.affine)
+                        #imask['data'][0] = data
+                        suj = tio.Subject({'t1': tio.ScalarImage(fin), 'lab': iout, 'mask': iout})
+                        tc = tio.Compose([tio.CropOrPad(mask_name='mask'), tio.Pad(4),tio.EnsureShapeMultiple(2)])
+                        sujt = tc(suj)
+                        sujt.lab.save(fname2)
+                        sujt.t1.save(fname1)
+
+                    else:
+                        if not os.path.isfile(fname1):
+                            os.symlink(fin, fname1)
+                        iout.save(fname2)
                     next_input_file[ii].append([fname1[:-len(fname_ext)],fname2[:-len(fname_ext)]])
 
             output_files_regions=[] #[[] for mm in region]
@@ -199,44 +214,49 @@ def nn_predict(
                 for ffi in next_input_file[ii]:
                     fo = addprefixtofilenames(ffi[0],'pred_')[0]
                     output_files_reg2.append(fo) #need if pred is skip but not merge TODO remove
-                    if os.path.isfile(fo+fname_ext) and ~ os.path.isfile(fo+'.npz'):
-                        print(f'skiping {fo} because exist')
-                    else:
-                        output_files_reg.append(fo)
+                    #if os.path.isfile(fo+fname_ext) and not (os.path.isfile(fo+'.npz')):
+                    #    print(f'skiping {fo} because exist')
+                    #else:
+                    output_files_reg.append(fo)
                 output_files_regions.append(output_files_reg2)
                 if len(output_files_reg)>0:
-                    predictor.initialize_from_trained_model_folder(mfolder,efold )
-                    predictor.predict_from_files(
-                        next_input_file[ii],
-                        output_files_reg,
-                        save_probabilities=True,
-                        overwrite=False,
-                        num_processes_preprocessing=2,
-                        num_processes_segmentation_export=1,
-                        folder_with_segs_from_prev_stage=None,
-                        num_parts=1,
-                        part_id=0
-                    )
-                    #now force the prediction to be without BG into the initial mask
-                    for iiff, fo in enumerate(output_files_reg):
-                        if os.path.isfile(fo+fname_ext) and ~ os.path.isfile(fo+'.npz'):
-                            print(f'skiping {fo} because exist')
-                            continue
+                    if os.path.isfile(fo+fname_ext) : #and (os.path.isfile(fo+'.npz')):
+                        print(f'skiping Prediction {fo} because exist')
+                    else :
+                        predictor.initialize_from_trained_model_folder(mfolder,efold )
+                        predictor.predict_from_files(
+                            next_input_file[ii],
+                            output_files_reg,
+                            save_probabilities=True,
+                            overwrite=False,
+                            num_processes_preprocessing=2,
+                            num_processes_segmentation_export=1,
+                            folder_with_segs_from_prev_stage=None,
+                            num_parts=1,
+                            part_id=0
+                        )
+                        #now force the prediction to be without BG into the initial mask
 
-                        print(f'{ii} Merging : {fo+fname_ext}')
-                        im = tio.LabelMap(next_input_file[ii][iiff][1]+fname_ext)
-                        pred_logit = np.load(fo + ".npz")
-                        data =  torch.from_numpy(pred_logit["probabilities"].transpose([0, 3,2,1]))
-                        arr_shape = data.shape
-                        data[0,: ] = torch.zeros(arr_shape[1:])  #force to predict anything but to 0
-                        seg = data.argmax(0).unsqueeze(0) * im.data # mask with input mask
-                        iout = tio.LabelMap(fo + fname_ext)
-                        vol_change = (seg>0).sum() / (iout.data>0).sum()
-                        print(f'extending predicted volume of {vol_change}') # value above 1.05 mean the model had hard time to predict (and prefered BG)
-                        iout['data'] = seg
-                        iout.save(fo + fname_ext)
-                        os.remove(fo +".npz")
-                        os.remove(fo + ".pkl")
+                        for iiff, fo in enumerate(output_files_reg):
+                            if os.path.isfile(fo+fname_ext) and not (os.path.isfile(fo+'.npz')):
+                                print(f'skiping {fo} because exist and npz has been delete ')
+                                continue
+
+                            print(f'{ii} Merging : {fo+fname_ext}')
+                            im = tio.LabelMap(next_input_file[ii][iiff][1]+fname_ext)
+                            pred_logit = np.load(fo + ".npz")
+                            data =  torch.from_numpy(pred_logit["probabilities"].transpose([0, 3,2,1]))
+                            arr_shape = data.shape
+                            data[0,: ] = torch.zeros(arr_shape[1:])  #force to predict anything but to 0
+                            seg = data.argmax(0).unsqueeze(0) * im.data # mask with input mask
+                            iout = tio.LabelMap(fo + fname_ext)
+                            vol_change = (seg>0).sum() / (iout.data>0).sum()
+                            print(f'extending predicted volume of {vol_change}') # value above 1.05 mean the model had hard time to predict (and prefered BG)
+                            iout['data'] = seg
+                            iout.save(fo + fname_ext)
+                            os.remove(fo +".npz")
+                            os.remove(fo + ".pkl")
+
             #merge all labels or todo one by one ?
             ind_label, ind_region = 0, 0
             dic_region_list = []
@@ -264,7 +284,10 @@ def nn_predict(
                 il = tmap_no_region(tio.LabelMap(fi+fname_ext))
                 for fregion, dic_map in zip(output_files_regions, dic_region_list):
                     tmap = tio.RemapLabels({ind_val+1:v for ind_val,v in enumerate(dic_map.values())})
+                    tc = tio.CropOrPad(il.shape[1:])
+                    tc = tio.Resample(target=il)
                     iregion = tmap( tio.LabelMap(fregion[ii]+fname_ext) )
+                    iregion = tc(iregion)
                     mask = iregion.data>0
                     il['data'], iregion['data'] = il['data'].type(torch.ByteTensor), iregion['data'].type(torch.ByteTensor)
                     il['data'][mask] = iregion['data'][mask]
