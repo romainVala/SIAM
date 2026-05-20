@@ -3,6 +3,9 @@
 #FROM python:3.11-slim
 FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
 
+#a tester FROM nvidia/cuda:12.8.0-cudnn9-runtime-ubuntu22.04
+# ou ne pas faire  l'install torch
+
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     SIAM_MODEL_DIR=/model_weights
@@ -19,10 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir "numpy<2.0.0" \
-    && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu121 torch \
+#    && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu121 torch \
     && pip install --no-cache-dir fury \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && conda clean -a -y
 
 RUN echo "force rebuild from here (2)"
 
@@ -35,10 +39,14 @@ RUN pip install --no-cache-dir /app \
 
 RUN echo "force rebuild from here (3)"
 
-RUN mkdir -p /model_weights \
-    && python /app/SIAMpred/download_model_weights.py
+#RUN mkdir -p /model_weights \
+#    && python /app/SIAMpred/download_model_weights.py
+RUN mkdir -p /model_weights
+#plus simple si les poid sont deja dasn apps avec le copy precedent
+RUN ln -s /app/v0.3  /model_weights/
 
-
+ENTRYPOINT ["siam-pred"]
+CMD ["--help"]
 # CMD ["siam-pred"]
 # expose not needed if using -p
 # If using only expose and not -p then will not work
