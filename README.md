@@ -65,10 +65,10 @@ if `-o` is not specify, result are store in the same folder, with a prefix
 
 ### More options:
 
-**NO Interpolation**: Use `-voxel_size 0.75`  for inputs isotropic resolution in the range [0.6 1] mm. Adding this option
-will avoid the standard process which consist of : 1) reslice input data to 0.75 mm (it was the choosen training resolution)
+**NO Interpolation**: Use `-voxel_size 0.75`  for inputs with isotropic resolution in the range [0.6 1] mm. Adding this option
+will avoid the standard process which consist of : 1) reslice input data to 0.75 mm (as it was the choosen training resolution)
 2) interpolate back the predicted labels to the original input resolution. (Since we have to use nearest neighbor this will 
-induced a loss of smalll structures
+induced a loss of smalll structures)
 Removing interpolation is important for small vessel, but also for GM ... it worth the try ...
 
 For very small baby brain, you need to scale the volume up, for the model to work. 
