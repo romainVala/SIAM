@@ -212,6 +212,35 @@ def get_model_path_and_fold(num_model:int ):
             # same as 107 ep4000
             res_folder = os.path.join(siam_model_dir, 'Dataset1007_Partialization_MixLowDill', 'nnUNetTrainerNoDA4000__nnUNetResEncUNetXLPlans__3d_fullres_average')
             out_prefix = 'pred_DS109_LcsfP_Ano'
+        elif num_model == 999:
+            res_folder = os.path.join(siam_model_dir, 'Dataset005_SN', 'nnUNetTrainer__nnUNetPlans__3d_fullres/')
+            out_prefix = 'siamV03_'
+        elif num_model ==20:
+            res_folder = os.path.join(siam_model_dir, 'Dataset720_V4_nDS5', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS720_AnoV4_nDS5'
+        elif num_model ==24:
+            res_folder = os.path.join(siam_model_dir, 'Dataset724_allen_V4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS724_AnoV4_allen'
+        elif num_model ==25:
+            res_folder = os.path.join(siam_model_dir, 'Dataset725_bigbrain_V4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS725_AnoV4_bigbrain'
+
+        elif num_model ==2020:
+            res_folder = os.path.join(siam_model_dir, 'Dataset720_V4_nDS5', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS720_RegAllen'
+            sub_region = gdir(gdir(siam_model_dir,'region_jzay'),['allen_V4','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+            res_folder = [res_folder, sub_region]
+        elif num_model ==2021:
+            res_folder = os.path.join(siam_model_dir, 'Dataset720_V4_nDS5', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS720_RegVasc'
+            sub_region = gdir(gdir(siam_model_dir,'region_jzay'),['vascular_V4','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+            res_folder = [res_folder, sub_region]
+
+        elif num_model ==2420:
+            res_folder = os.path.join(siam_model_dir, 'Dataset724_allen_V4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS724_RegAllen'
+            sub_region = gdir(gdir(siam_model_dir,'region_jzay'),['allen_V4','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+            res_folder = [res_folder, sub_region]
 
 
     if isinstance(res_folder,list): #subregion or cascade
