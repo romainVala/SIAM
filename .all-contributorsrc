@@ -15,6 +15,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "neurolabusc",
+      "name": "Chris Rorden",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8930807?v=4",
+      "profile": "https://scholar.google.com/citations?user=00jLGq8AAAAJ&hl=en",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
