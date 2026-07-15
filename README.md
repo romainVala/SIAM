@@ -14,7 +14,7 @@ The current version performs **tissue segmentation**, at 0.75 mm
 
 - **Model 3** (defautl or -m 0), extends siam's v2 robustness toward anatomical **anomalies**, which are segmented as an extra [Label](labels.json).  
 
-
+If usefull, please cite (and may be add a star here)
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
 > _SIAM : Head and Brain MRI Segmentation from Few High-Quality Templates via Synthetic Training._
 > ArXiv. [https://arxiv.org/abs/2605.02737)
@@ -65,7 +65,7 @@ if `-o` is not specify, result are store in the same folder, with a prefix
 
 ### More options:
 
-**NO Interpolation**: Use `-voxel_size 0.75`  for inputs with isotropic resolution in the range [0.6 1] mm. Adding this option
+**NO Interpolation**: Use `-voxelsize 0.75`  for inputs with isotropic resolution in the range [0.6 1] mm. Adding this option
 will avoid the standard process which consist of : 1) reslice input data to 0.75 mm (as it was the choosen training resolution)
 2) interpolate back the predicted labels to the original input resolution. (Since we have to use nearest neighbor this will 
 induced a loss of smalll structures)
