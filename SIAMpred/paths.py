@@ -63,7 +63,7 @@ def get_siam_model_dir():
         model_dir = os.path.join(os.path.expanduser('~'), 'siam_params')
     return model_dir
 
-def get_model_path_and_fold(num_model:int ):
+def get_model_path_and_fold(num_model:int , region_regex:str = None):
     siam_model_dir = get_siam_model_dir()
 
     if num_model==0: #get it from zenodo
@@ -119,10 +119,10 @@ def get_model_path_and_fold(num_model:int ):
                                       'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres') ]
             out_prefix = 'pred_DS709_CascadeNoDA_'
 
-        elif num_model == 3:
+        elif num_model == 8:
             #img 450^3 18 mn GPU A100 80G 24 cpu
             res_folder = os.path.join(siam_model_dir, 'Dataset708_Ultra_SkulVasc40',
-                                      'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+                                      'model_rXL708_v0.1')
             out_prefix = 'pred_DS708_5nnResXL_'
 
         elif num_model == 4:
@@ -137,11 +137,11 @@ def get_model_path_and_fold(num_model:int ):
                                       'nnUNetTrainer__nnUNetPlannerResEncXL_80G__3d_fullres')
             out_prefix = 'pred_DS704_3nnResXL_'
 
-        elif num_model ==8:
+        elif num_model ==88: #8
             res_folder = os.path.join(siam_model_dir, 'Dataset718_Ultra_SkulVasc40_TumorBrast', 'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
             out_prefix = 'pred_DS718_5nnResL'
 
-        elif num_model ==88:
+        elif num_model ==888:
             res_folder = os.path.join(siam_model_dir, 'Dataset718_Ultra_SkulVasc40_TumorBrast', 'nnUNetTrainer__nnUNetResEncUNetXXLPlans__3d_fullres')
             out_prefix = 'pred_DS718_5nnResXXL'
 
@@ -241,6 +241,72 @@ def get_model_path_and_fold(num_model:int ):
             out_prefix = 'pred_DS724_RegAllen'
             sub_region = gdir(gdir(siam_model_dir,'region_jzay'),['allen_V4','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
             res_folder = [res_folder, sub_region]
+        elif num_model ==30:
+            res_folder = os.path.join(siam_model_dir, 'Dataset730_V42_nDS4', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS730_nDS4'
+        elif num_model ==40:
+            res_folder = os.path.join(siam_model_dir, 'Dataset740_V42_nDS4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS740_2KnDS4'
+        elif num_model ==41:
+            res_folder = os.path.join(siam_model_dir, 'Dataset740_V42_nDS4', 'nnUNetTrainerNoDA4000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS741_3KnDS4'
+        elif num_model ==4040:
+            res_folder = os.path.join(siam_model_dir, 'Dataset740_V42_nDS4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS740_Reg'
+            sub_region = gdir(gdir(siam_model_dir,'region_jzayV42'),[region_regex,'nnUNetTrainerNoDA__nnUNetResEncUNet.*'])
+            res_folder = [res_folder, sub_region]
+        elif num_model ==4041:
+            res_folder = os.path.join(siam_model_dir, 'Dataset740_V42_nDS4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS740_RegAllenSkull'
+            sub_region = gdir(gdir(siam_model_dir,'region_jzayV42'),['(allen|skull)_V42','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+            res_folder = [res_folder, sub_region]
+
+        elif num_model ==50:
+            #res_folder = os.path.join(siam_model_dir, 'Dataset750_AnoV42_nsD4', 'nnUNetTrainerNoDA__nnUNetResEncUNetXLPlans__3d_fullres')
+            #out_prefix = 'pred_DS750_1KnDS4'
+            res_folder = os.path.join(siam_model_dir, 'Dataset750_AnoV42_nsD4', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS750_Les_2KDS4'
+
+        elif num_model ==60:
+            res_folder = os.path.join(siam_model_dir, 'Dataset760_AnoV42_nsD4_and_720', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS760_Mix50_20_Ano'
+        elif num_model ==70:
+            res_folder = os.path.join(siam_model_dir, 'Dataset770_mergeNoLes', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS770_NoL_Mix50_202K'
+        elif num_model ==71:
+            res_folder = os.path.join(siam_model_dir, 'Dataset770_mergeNoLes', 'nnUNetTrainerNoDA2000__nnUNetResEncUNetXLPlans__3d_fullresinit720')
+            out_prefix = 'pred_DS770_NoL_Mix20_502K'
+
+        elif num_model == 610:
+            res_folder = os.path.join(siam_model_dir, 'Dataset610_3DS_noAugment', 'nnUNetTrainer__nnUNetResEncUNetXLPlans__3d_fullres')
+            out_prefix = 'pred_DS610_nnAug3DS'
+
+        elif num_model == 33:
+            res_folder = os.path.join(siam_model_dir, '..','insightec_les','results', 'Dataset333_lesionHIFU_T1w', 'nnUNetTrainer__nnUNetResEncUNetLPlans__3d_fullres')
+            out_prefix = 'pred33_LesT1'
+
+        elif num_model == 82:
+            res_folder = [os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
+                                       'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_lowres'),
+                          os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
+                                       'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
+                          ]
+            out_prefix = 'pred_DS782_lAtis_cas05'
+        elif num_model == 80:
+            res_folder = os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
+                                      'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_lowres')
+            out_prefix = 'pred_DS780_lAtis_lowres'
+
+        elif num_model == 83:
+            res_folder = [os.path.join(siam_model_dir, 'Dataset783_Ano4DS_vAllen_LesionP2',
+                                      'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_lowres'),
+                          os.path.join(siam_model_dir, 'Dataset783_Ano4DS_vAllen_LesionP2',
+                                       'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
+                          ]
+            out_prefix = 'pred_DS783_Tles_cas05'
+        else:
+            raise(f'Sorry no model file in {siam_model_dir}  ')
+
 
 
     if isinstance(res_folder,list): #subregion or cascade
@@ -250,6 +316,11 @@ def get_model_path_and_fold(num_model:int ):
                 existing_fold.append([get_fold_list(rrrr) for rrrr in rrr ])
             else:
                 existing_fold.append( get_fold_list(rrr) )
+        if isinstance(res_folder[1],list):
+            print(f"Selecting model {num_model} with {len(res_folder[1])} subreg")
+        else :
+            print(f"Slecting casscade, model {num_model}")
+        print(res_folder[1])
 
     else:
         existing_fold = get_fold_list(res_folder)
@@ -262,7 +333,10 @@ def get_model_path_and_fold(num_model:int ):
 
 def get_fold_list(res):
     existing_fold = gdir(res,'fold')
-    model_files = gfile(existing_fold, 'checkpoint_final.pth')
+    model_files = gfile(existing_fold, 'checkpoint_final') #.pth
+    if len(model_files)==0:
+        model_files = gfile(existing_fold, 'checkpoint_best') #extension can be now .pth or .safetensors
+        print(f'get_mode{model_files}')
     existing_fold = get_parent_path(model_files)[0] #selec only dir with checkpoint_final
     return [int(ss[-1]) for ss in existing_fold]
 
@@ -441,3 +515,46 @@ def get_parent_path(fin,level=1, remove_ext=False):
     else:
         return path_name, file_name
 
+def remove_extension(str_in,retrun_ext=False):
+    return_str = False
+    second_extention_list = ['.nii', '.pt']
+    first_extention_list = ['.gz']
+    if isinstance(str_in, str):
+        str_in = [str_in];
+        return_str = True
+    #remove up to 2 extension
+    #res = [os.path.splitext(os.path.splitext(ss)[0])[0] for ss in str_in]
+    res,ext = [], []
+    for ss in str_in:
+        rr1, ext1 = os.path.splitext(ss)
+        rr2, ext2 = os.path.splitext(rr1)
+        if (ext2 in second_extention_list) | (ext1 in first_extention_list):
+            res.append(rr2)
+            ext.append(ext2+ext1)
+        else:
+            res.append(rr1)
+            ext.append(ext1)
+    #res = [os.path.splitext(ss)[0] for ss in str_in]  #one shot
+    if retrun_ext:
+        if return_str:
+            return res[0],ext[0]
+        else:
+            return res,ext
+
+    return res[0] if return_str else res
+
+def addsuffixtofilenames(file_names,suffix):
+    fout = []
+    return_str = False
+    if isinstance(file_names, str):
+        file_names = [file_names]
+        return_str = True
+
+    for ff in file_names:
+        basdir = os.path.dirname(ff)
+        fn = os.path.basename(ff)
+        fn,ex = remove_extension(fn,retrun_ext=True)
+        fout.append(os.path.join(basdir , fn + suffix + ex))
+    if return_str:
+        return fout[0]
+    return fout

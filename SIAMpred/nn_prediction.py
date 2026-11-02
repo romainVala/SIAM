@@ -5,7 +5,7 @@ from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkd
 sys.stdout = open(os.devnull, 'w')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 sys.stdout = sys.__stdout__
-from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile
+from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile, addsuffixtofilenames
 import json, re
 import torchio as tio
 
@@ -104,13 +104,14 @@ def nn_predict(
         use_tta: bool = False,
         device: torch.device = torch.device('cuda'),
         num_model: int =1,
+        region_regex: str='.*',
         voxel_size=0,
         verbose: bool = False,
         num_processes_preprocessing=4,
         num_processes_segmentation_export=8,
 ):
 
-    folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model)
+    folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, region_regex)
 
     # find input file or files
     if not input_file_or_folder.startswith('/'):
@@ -171,7 +172,12 @@ def nn_predict(
     if isinstance(folder_with_parameter_files,list):
         #cascade network or subregion
         diroutput = os.path.dirname(output_files[0])
-        dirout1 = os.path.join(diroutput,'previous_stage')
+        if os.path.isdir(input_file_or_folder): #input is dir
+            dirout1 = diroutput
+        else:
+            dirout1 = os.path.join(diroutput,f'region_{out_prefix}_{fname_noext}')
+
+
         maybe_mkdir_p(dirout1)
         output_files_first_stage=[]
         for oo in output_files:
@@ -179,7 +185,7 @@ def nn_predict(
             file_basname = file_basname[len(out_prefix):]
             #file_basname = file_basname[:-12] + '.nii.gz' no more extension
             #file_basname = file_basname[:-5]
-            output_files_first_stage.append( os.path.join(dirout1, file_basname) )
+            output_files_first_stage.append( os.path.join(dirout1, f'Pre_{out_prefix}{file_basname}') )
         print(f'first output file is {output_files_first_stage}')
         predictor.initialize_from_trained_model_folder(
             folder_with_parameter_files[0],
@@ -202,12 +208,13 @@ def nn_predict(
                 dsj = json.load(f)
             dic_lab = dsj['labels']
             sub_model_name = get_parent_path(folder_with_parameter_files[1],2)[1]
-            region=[]
+            region,region_dir=[],[]
             for DSname in sub_model_name:
                 ind_underscore = [m.start() for m in re.finditer('_',DSname)]
                 region.append(DSname[ind_underscore[0]+1:ind_underscore[1]])
+                region_dir.append(DSname[ind_underscore[0]+1:])
 
-            dirout_list = [os.path.join(dirout1,f'pred_{reg}') for reg in region]
+            dirout_list = [os.path.join(dirout1,f'pred_{reg}') for reg in region_dir]
 
             #make region prediction, first pre
             crop_to_mask=True
@@ -223,7 +230,13 @@ def nn_predict(
                 il = tio.LabelMap(fo)
 
                 for ii, (reg, dirout2) in enumerate( zip(region, dirout_list) ):
-                    data = il.data == dic_lab[reg]
+                    if reg=='Thal': #quick hack for thal which also contain striatum and ru ....
+                        data = (il.data == dic_lab['Thal']) | (il.data == dic_lab['Striatum']) | (il.data == dic_lab['RU'])
+                    else:
+                        data = il.data == dic_lab[reg]
+                    if data.sum()<1000:
+                        print(f"Skiping region {reg} because first level mash has less than 1000 voxel")
+                        continue
                     iout = tio.LabelMap(tensor=data, affine=il.affine)
                     maybe_mkdir_p(dirout2)
                     fname1 = os.path.join(dirout2, fname_noext + fname_ext)
@@ -294,66 +307,122 @@ def nn_predict(
                             os.remove(fo +".npz")
                             os.remove(fo + ".pkl")
 
-            #merge all labels or todo one by one ?
-            ind_label, ind_region = 0, 0
-            dic_region_list = []
-            for one_region in dic_lab.keys():
-                if one_region in region:
-                    #del dic_lab[one_region]
-                    fjson = gfile(dirout_list[ind_region], 'dataset.json')[0]
-                    with open(fjson) as f:
-                        dic_subregion = json.load(f)['labels']
-                    del dic_subregion['background']
-                    for k in dic_subregion.keys():
-                        dic_subregion[k] = ind_label
-                        ind_label+=1
-                    dic_region_list.append(dic_subregion)
-                    ind_region+=1
-                else:
-                    dic_lab[one_region] = ind_label
-                    ind_label += 1
-            tmap_no_region = tio.RemapLabels({iii:vv for iii,vv in  enumerate(dic_lab.values())})
-            for one_region in region:
-                del dic_lab[one_region]
-            for dd in dic_region_list:
-                dic_lab.update(dd)
-            for ii, (fi, fo) in enumerate( zip(output_files_first_stage, output_files) ):
-                il = tmap_no_region(tio.LabelMap(fi+fname_ext))
-                for fregion, dic_map in zip(output_files_regions, dic_region_list):
-                    tmap = tio.RemapLabels({ind_val+1:v for ind_val,v in enumerate(dic_map.values())})
-                    tc = tio.CropOrPad(il.shape[1:])
-                    tc = tio.Resample(target=il)
-                    iregion = tmap( tio.LabelMap(fregion[ii]+fname_ext) )
-                    iregion = tc(iregion)
-                    mask = iregion.data>0
-                    il['data'], iregion['data'] = il['data'].type(torch.ByteTensor), iregion['data'].type(torch.ByteTensor)
-                    il['data'][mask] = iregion['data'][mask]
-                il.save(fo+fname_ext)
+                        #qsdff
+                        output_files_region_wanted =  []
+                        for ss in output_files_reg:
+                            dd = os.path.dirname(ss)
+                            ffn = os.path.basename(ss)
+                            output_files_region_wanted.append(dd + '/' + ffn.replace('_toCano_', '_'))
 
-            dic_lab = {k: v for k, v in sorted(dic_lab.items(), key=lambda item: item[1])}
-            fo_dic = get_parent_path((fo))[0]+'/dataset_region_labels.json'
-            with open(fo_dic, 'w') as file:
-                json.dump(dic_lab, file, indent=4, sort_keys=False)
+                        for fi1, fi2, fo1, fo2, reorient_back in zip(input_file_orig, next_input_file[ii], output_files_region_wanted,
+                                                                     output_files_reg, converted_to_canonical):
+                            if reorient_back:
+                                print('remove cano for region predictions')
+                                tr = tio.Resample(target=fi1)
+                                if len(fname_ext) == 4:  # ie input nifti .nii
+                                    ffo = fo2 + fname_ext + '.gz'
+                                    fo1 = fo1 + '.gz'  # force output to be in gz, important to spare disque especialy with label maps
+                                else:
+                                    ffo = fo2 + fname_ext
+                                    if fo1.endswith('_0000'):
+                                        fo1 = fo1[:-5]
+                                    fo1 += fname_ext
+                                ipred = tio.LabelMap(ffo)
+                                ipred.load()  # IMPORTANT to be able to modify the affine (the affine is not set, it is read "online")
+                                if voxel_size > 0:  # change resolution back
+                                    ilorig = tio.ToCanonical()(tio.LabelMap(fi1))  # because we are in cano space
+                                    # because we are in canonical with positif diag. we need to keep  >0 value so that the reslice reoder correctly
+                                    # ipred.affine[0, 0] = np.abs(ilorig.affine[0, 0])
+                                    # ipred.affine[1, 1] = np.abs(ilorig.affine[1, 1])
+                                    # ipred.affine[2, 2] = np.abs(ilorig.affine[2, 2])
+                                    ipred.affine = ilorig.affine
+                                io = tr(ipred)
+
+                                io.save(fo1)
+                                print(f'removing {ffo}')
+                                print(f'removing {fi2}')
+                                os.remove(ffo)
+                                [os.remove(ffi2+'.nii.gz') for ffi2 in fi2] #multiple input contras
+
+            #merge all labels or todo one by one ?
+            DOMERGE=False
+            if DOMERGE:
+                ind_label, ind_region = 0, 0
+                dic_region_list = []
+                for one_region in dic_lab.keys():
+                    if one_region in region:
+                        #del dic_lab[one_region]
+                        fjson = gfile(dirout_list[ind_region], 'dataset.json')[0]
+                        with open(fjson) as f:
+                            dic_subregion = json.load(f)['labels']
+                        del dic_subregion['background']
+                        for k in dic_subregion.keys():
+                            dic_subregion[k] = ind_label
+                            ind_label+=1
+                        dic_region_list.append(dic_subregion)
+                        ind_region+=1
+                    else:
+                        dic_lab[one_region] = ind_label
+                        ind_label += 1
+                tmap_no_region = tio.RemapLabels({iii:vv for iii,vv in  enumerate(dic_lab.values())})
+                for one_region in region:
+                    del dic_lab[one_region]
+                for dd in dic_region_list:
+                    dic_lab.update(dd)
+                for ii, (fi, fo) in enumerate( zip(output_files_first_stage, output_files) ):
+                    il = tmap_no_region(tio.LabelMap(fi+fname_ext))
+                    for fregion, dic_map in zip(output_files_regions, dic_region_list):
+                        tmap = tio.RemapLabels({ind_val+1:v for ind_val,v in enumerate(dic_map.values())})
+                        tc = tio.CropOrPad(il.shape[1:])
+                        tc = tio.Resample(target=il)
+                        iregion = tmap( tio.LabelMap(fregion[ii]+fname_ext) )
+                        iregion = tc(iregion)
+                        mask = iregion.data>0
+                        il['data'], iregion['data'] = il['data'].type(torch.ByteTensor), iregion['data'].type(torch.ByteTensor)
+                        il['data'][mask] = iregion['data'][mask]
+                    il.save(fo+fname_ext)
+
+                dic_lab = {k: v for k, v in sorted(dic_lab.items(), key=lambda item: item[1])}
+                fo_dic = get_parent_path((fo))[0]+'/dataset_region_labels.json'
+                with open(fo_dic, 'w') as file:
+                    json.dump(dic_lab, file, indent=4, sort_keys=False)
 
 
 
         else:         # second network cascade
+            print(f'second cascade network with {input_files} prev is {dirout1} or {output_files_first_stage}')
+            print(f"output i {output_files}")
             predictor.initialize_from_trained_model_folder(
                 folder_with_parameter_files[1],
                 existing_fold[1]
             )
+            input_files_nnunet = []
+            for ff1,ff2 in zip(input_files, output_files_first_stage):
+                _,fn = get_parent_path(ff1)
+                fnnew = os.path.join(dirout1 , addsuffixtofilenames(fn,'_0000') )
+                fnnew2 = os.path.join(dirout1, fn)
+                dd, fn2 = get_parent_path(ff2)
+                _,fn2 = get_parent_path( gfile(dd,fn2)[0] ) #to get extension
+                if not os.path.isfile(fnnew):
+                    os.symlink(f'../{fn}', fnnew)
+                if not os.path.isfile(fnnew2):
+                    os.symlink(f'./{fn2}', fnnew2)
+
+                input_files_nnunet.append( [fnnew])
+            #if input_is_file is False:
+            #    output_files = addprefixtofilenames(output_files,'c2')
+
             predictor.predict_from_files(
-                [[i] for i in input_files],
+                input_files_nnunet,
                 output_files,
                 save_probabilities=False,
                 overwrite=False,
                 num_processes_preprocessing=2,
                 num_processes_segmentation_export=1,
-                folder_with_segs_from_prev_stage=dirout1,
+                folder_with_segs_from_prev_stage= dirout1 ,#[[i] for i in output_files_first_stage] ,#output_files_first_stage, #dirout1
                 num_parts=1,
                 part_id=0
             )
-
 
     else:
         predictor.initialize_from_trained_model_folder(

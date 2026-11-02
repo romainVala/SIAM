@@ -1,4 +1,6 @@
 import torch,os
+from torch.optim.optimizer import required
+
 from . import __version__
 
 def test_cuda_memory_greate_than(min_memory_GB=12):
@@ -40,6 +42,11 @@ def main():
     parser.add_argument('-m', '--model', help='Optional: For local use only : An integer to specify which model '
                                               'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
+
+    parser.add_argument('-r', '--region', help='Optional: regular expression to select specific region '
+                                              'default value is .* which is equivalent to (Thal|GM|WM|Ventricules|Cereb|Head|Skull)'
+                        ,default='.*', type=str, required=False)
+
     parser.add_argument('-voxelsize', default=0, type=float, required=False,
                         help=" float default 0. Important for too small head size (compare to adult ) "
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
@@ -79,6 +86,7 @@ def main():
                use_tta=False, #not args.disable_tta,
                device=torch.device(device_arg),
                num_model = args.model,
+               region_regex = args.region,
                verbose=args.verbose,
                voxel_size=args.voxelsize,
                num_processes_preprocessing=args.nbthread,
