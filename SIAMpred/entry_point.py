@@ -47,6 +47,9 @@ def main():
                                               'default value is .* which is equivalent to (Thal|GM|WM|Ventricules|Cereb|Head|Skull)'
                         ,default='.*', type=str, required=False)
 
+    parser.add_argument('--save_proba', action='store_true', required=False,
+                        help="add this flag, to also save 4D model output (probabilities per class) ")
+
     parser.add_argument('-voxelsize', default=0, type=float, required=False,
                         help=" float default 0. Important for too small head size (compare to adult ) "
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
@@ -90,7 +93,8 @@ def main():
                verbose=args.verbose,
                voxel_size=args.voxelsize,
                num_processes_preprocessing=args.nbthread,
-               num_processes_segmentation_export=args.nbthread
+               num_processes_segmentation_export=args.nbthread,
+               save_proba = args.save_proba
                )
 
 

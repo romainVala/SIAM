@@ -5,7 +5,8 @@ from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkd
 sys.stdout = open(os.devnull, 'w')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 sys.stdout = sys.__stdout__
-from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile, addsuffixtofilenames
+from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile, addsuffixtofilenames, \
+    remove_extension
 import json, re
 import torchio as tio
 
@@ -109,10 +110,11 @@ def nn_predict(
         verbose: bool = False,
         num_processes_preprocessing=4,
         num_processes_segmentation_export=8,
+        save_proba = False
 ):
 
     folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, region_regex)
-
+    print(f"save PROBA is {save_proba}")
     # find input file or files
     if not input_file_or_folder.startswith('/'):
         input_file_or_folder = join(os.path.curdir, input_file_or_folder)
@@ -186,7 +188,7 @@ def nn_predict(
             #file_basname = file_basname[:-12] + '.nii.gz' no more extension
             #file_basname = file_basname[:-5]
             output_files_first_stage.append( os.path.join(dirout1, f'Pre_{out_prefix}{file_basname}') )
-        print(f'first output file is {output_files_first_stage}')
+        #print(f'first output file is {output_files_first_stage}')
         predictor.initialize_from_trained_model_folder(
             folder_with_parameter_files[0],
             existing_fold[0]
@@ -194,7 +196,7 @@ def nn_predict(
         predictor.predict_from_files(
             [[i] for i in input_files],
             output_files_first_stage,
-            save_probabilities=False,
+            save_probabilities=save_proba,
             overwrite=False,
             num_processes_preprocessing=num_processes_preprocessing,
             num_processes_segmentation_export=num_processes_segmentation_export,
@@ -390,8 +392,7 @@ def nn_predict(
 
 
         else:         # second network cascade
-            print(f'second cascade network with {input_files} prev is {dirout1} or {output_files_first_stage}')
-            print(f"output i {output_files}")
+
             predictor.initialize_from_trained_model_folder(
                 folder_with_parameter_files[1],
                 existing_fold[1]
@@ -415,7 +416,7 @@ def nn_predict(
             predictor.predict_from_files(
                 input_files_nnunet,
                 output_files,
-                save_probabilities=False,
+                save_probabilities=save_proba,
                 overwrite=False,
                 num_processes_preprocessing=2,
                 num_processes_segmentation_export=1,
@@ -433,7 +434,7 @@ def nn_predict(
         predictor.predict_from_files(
             [[i] for i in input_files],
             output_files,
-            save_probabilities=False,
+            save_probabilities=save_proba,
             overwrite=False,
             num_processes_preprocessing=num_processes_preprocessing,
             num_processes_segmentation_export=num_processes_segmentation_export,
@@ -441,6 +442,21 @@ def nn_predict(
             num_parts=1,
             part_id=0
         )
+    if save_proba:
+        print(f'converting proba npz, in nifti')
+        for fo in output_files:
+            fprob1 = remove_extension(fo) + '.npz'
+            fprob2 = remove_extension(fo) + '.pkl'
+            fonew = addprefixtofilenames(fo,'proba_')
+            pred_logit = np.load(fprob1)
+            ddo,ffo = get_parent_path(fo)
+            ffo = gfile(ddo,f'{ffo}.nii')[0]
+            iref  = tio.LabelMap(ffo)
+            data = torch.from_numpy(pred_logit["probabilities"].transpose([0, 3, 2, 1]))
+            il = tio.LabelMap(tensor=data, affine=iref.affine)
+            il.save(f'{fonew[0]}.nii.gz')
+            os.remove(fprob1)
+            os.remove(fprob2)
 
     for fi1,fi2, fo1, fo2, reorient_back in zip(input_file_orig,input_files,output_files_wanted,output_files, converted_to_canonical):
         if reorient_back:
