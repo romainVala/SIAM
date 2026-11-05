@@ -92,8 +92,7 @@ def main():
                region_regex = args.region,
                verbose=args.verbose,
                voxel_size=args.voxelsize,
-               num_processes_preprocessing=args.nbthread,
-               num_processes_segmentation_export=args.nbthread,
+               num_process=args.nbthread,
                save_proba = args.save_proba
                )
 
