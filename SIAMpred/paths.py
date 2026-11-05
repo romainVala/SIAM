@@ -292,6 +292,16 @@ def get_model_path_and_fold(num_model:int , region_regex:str = None):
                                        'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                           ]
             out_prefix = 'pred_DS782_lAtis_cas05'
+        elif num_model == 8282:
+            res_folder = [os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
+                                       'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_lowres'),
+                          os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
+                                       'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
+                          ]
+            sub_region = gdir(gdir(siam_model_dir,'region82_jzay'),['.*P4$','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+            res_folder = [res_folder, sub_region]
+            out_prefix = 'pred_DS782_lAtis_cas05_regions'
+
         elif num_model == 80:
             res_folder = os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
                                       'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_lowres')
@@ -320,7 +330,6 @@ def get_model_path_and_fold(num_model:int , region_regex:str = None):
             print(f"Selecting model {num_model} with {len(res_folder[1])} subreg")
         else :
             print(f"Slecting casscade, model {num_model}")
-        print(res_folder[1])
 
     else:
         existing_fold = get_fold_list(res_folder)
