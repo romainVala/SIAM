@@ -63,7 +63,7 @@ def get_siam_model_dir():
         model_dir = os.path.join(os.path.expanduser('~'), 'siam_params')
     return model_dir
 
-def get_model_path_and_fold(num_model:int , region_regex:str = None):
+def get_model_path_and_fold(num_model:int , region_regex:str = '.*'):
     siam_model_dir = get_siam_model_dir()
 
     if num_model==0: #get it from zenodo
@@ -291,16 +291,16 @@ def get_model_path_and_fold(num_model:int , region_regex:str = None):
                           os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
                                        'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                           ]
-            out_prefix = 'pred_DS782_lAtis_cas05'
+            out_prefix = 'pred_DS782_lAtis_cas05_regions' #pred_DS782_TNoLes_cas05_regions
         elif num_model == 8282:
             res_folder = [os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
                                        'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_lowres'),
                           os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',
                                        'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                           ]
-            sub_region = gdir(gdir(siam_model_dir,'region82_jzay'),['.*P4$','nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+            sub_region = gdir(gdir(siam_model_dir,'region82_jzay'),[region_regex,'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
             res_folder = [res_folder, sub_region]
-            out_prefix = 'pred_DS782_lAtis_cas05_regions'
+            out_prefix = 'pred_DS782_Tis05_regions'
 
         elif num_model == 80:
             res_folder = os.path.join(siam_model_dir, 'Dataset782_Ano4DS_vAllen_nolesP2',

@@ -43,12 +43,15 @@ def main():
                                               'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
 
-    parser.add_argument('-r', '--region', help='Optional: regular expression to select specific region '
-                                              'default value is .* which is equivalent to (Thal|GM|WM|Ventricules|Cereb|Head|Skull)'
+    parser.add_argument('-r', '--region', help='Optional: regular expression (regex) to select specific region '
+                                              'default value is .* which is equivalent to the following regex'
+                                               '(CSF|GM|WM|Cereb|deep|Thal|Head|Skull), adapt to keep a subpart'
                         ,default='.*', type=str, required=False)
 
     parser.add_argument('--save_proba', action='store_true', required=False,
                         help="add this flag, to also save 4D model output (probabilities per class) ")
+    parser.add_argument('--regroup_regions', action='store_true', required=False,
+                        help="add this flag, with -i -o -m options used at prediction to do posprocessing region grouping and remapping")
 
     parser.add_argument('-voxelsize', default=0, type=float, required=False,
                         help=" float default 0. Important for too small head size (compare to adult ) "
@@ -83,18 +86,24 @@ def main():
     #arrg, not sure how to force nnunet to really use the request nbthread it is still using the env variable
     os.environ['nnUNet_def_n_proc'] = str(args.nbthread)
     # I put the import here so the default_num_processes set by nnunet does use the env set done here
-    from SIAMpred.nn_prediction import nn_predict
+    from SIAMpred.nn_prediction import nn_predict,regroup_regions
 
-    nn_predict(args.input,args.output,
-               use_tta=False, #not args.disable_tta,
-               device=torch.device(device_arg),
-               num_model = args.model,
-               region_regex = args.region,
-               verbose=args.verbose,
-               voxel_size=args.voxelsize,
-               num_process=args.nbthread,
-               save_proba = args.save_proba
-               )
+    if args.regroup_regions:
+        regroup_regions(
+            args.input, args.output,
+            num_model=args.model,
+            region_regex=args.region,
+        )
+    else:
+        nn_predict(args.input,args.output,
+                   device=torch.device(device_arg),
+                   num_model = args.model,
+                   region_regex = args.region,
+                   verbose=args.verbose,
+                   voxel_size=args.voxelsize,
+                   num_process=args.nbthread,
+                   save_proba = args.save_proba
+                   )
 
 
 if __name__ == '__main__':
