@@ -129,6 +129,8 @@ host on non-CUDA backends, so MPS is faster than CPU but not as fast as CUDA.
 On a 48 GB unified-memory machine, use `-nbthread 1` or `2` to avoid OOM
 kills from parallel worker processes.
 
+Atlternatively, you can try [MedMLX](https://medmlx.org/models/siam/) who reimplement the model's inference inside their tool.
+
 ## Memory issues
 
 Running with GPU requires more than 12 G on the GPU card
