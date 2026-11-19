@@ -375,13 +375,18 @@ def _prepare_region_inputs(input_files, tissue_seg_files, region, dirout_list, d
             else:
                 if reg == 'Thal' and "Striatum" in dic_lab:  # quick hack for model 4040  -> thal contains striatum et RU
                     data = (il.data == dic_lab['Thal']) | (il.data == dic_lab['Striatum']) | (il.data == dic_lab['RU'])
+                elif reg == "Lesion":
+                    data = il.data > 0 #take it all
                 else:
                     data = il.data == dic_lab[reg]
                 if data.sum() < min_voxels:
                     print(f"Skiping region {reg} because first level mash has less than {min_voxels} voxel")
                     continue
-
-                iout = tio.LabelMap(tensor=data, affine=il.affine)
+                if  reg == "Lesion" :
+                    iout = il
+                    crop_to_mask = False
+                else:
+                    iout = tio.LabelMap(tensor=data, affine=il.affine)
                 if crop_to_mask:
                     suj = tio.Subject({'t1': tio.ScalarImage(fin), 'lab': iout, 'mask': iout})
                     tc = tio.Compose([tio.CropOrPad(mask_name='mask'), tio.Pad(4), tio.EnsureShapeMultiple(2)])
@@ -420,7 +425,8 @@ def _apply_tissue_mask(seg_file, mask_file):
     imask = tio.LabelMap(mask_file)
     if iseg.shape != imask.shape:
         raise ValueError(f'shape mismatch {seg_file} {iseg.shape} vs {mask_file} {imask.shape}')
-        mask = imask.data > 0
+
+    mask = imask.data > 0
     #check if still background value in region predicted mask (should not happen)
     nb_bg_in_mask = int(((iseg.data == 0) & mask).sum())
     if nb_bg_in_mask > 0:
@@ -540,17 +546,20 @@ def _predict_subregions(predictor, region_model_folders, region_folds, input_fil
             _remove_transient_files(next_input_file[ii], fname_ext)
 
             continue
-        predictor.force_no_background = True
+        if region[ii] == "Lesion":
+            predictor.force_no_background = False
+        else:
+            predictor.force_no_background = True
         _run_prediction(predictor, mfolder, efold, next_input_file[ii], output_files_reg,
                         save_probabilities=False,
                         num_processes_preprocessing=num_processes_preprocessing,
                         num_processes_segmentation_export=num_processes_segmentation_export)
         predictor.force_no_background = False  # ne pas polluer les prédictions suivantes
-
-        # masque tissu : à faire AVANT la réorientation (qui supprime les fichiers masque)
-        for fo, ffi in zip(output_files_reg, next_input_file[ii]):
-            print(f'{ii} Masking : {fo + fname_ext}')
-            _apply_tissue_mask(fo + fname_ext, ffi[1] + fname_ext)
+        if not (region[ii] == "Lesion"):
+            # masque tissu : à faire AVANT la réorientation (qui supprime les fichiers masque)
+            for fo, ffi in zip(output_files_reg, next_input_file[ii]):
+                print(f'{ii} Masking : {fo + fname_ext}')
+                _apply_tissue_mask(fo + fname_ext, ffi[1] + fname_ext)
         #qsdf
         #for iiff, fo in enumerate(output_files_reg):
         #    if os.path.isfile(fo + fname_ext) and not os.path.isfile(fo + '.npz'):

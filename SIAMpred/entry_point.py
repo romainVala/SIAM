@@ -44,8 +44,8 @@ def main():
                         ,default=0, type=int, required=False)
 
     parser.add_argument('-r', '--region', help='Optional: regular expression (regex) to select specific region '
-                                              'default value is .* which is equivalent to the following regex'
-                                               '(CSF|GM|WM|Cereb|deep|Thal|Head|Skull), adapt to keep a subpart'
+                                              'default value is all of course, adapt the regular expresion to keep what you wish'
+                                               ' --region="(CSF|GM|WM|Cereb|deep|Thal|Head|Skull)" '
                         ,default='.*', type=str, required=False)
 
     parser.add_argument('--save_proba', action='store_true', required=False,
