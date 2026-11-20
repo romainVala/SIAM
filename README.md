@@ -63,7 +63,32 @@ and save the predictions in a sub-folder containing the OUTPUT_PREFIX name.
 if `-o` is not specify, result are store in the same folder, with a prefix
 -m model number (default 3, int within [1 2 3] )
 
-### More options:
+### More options
+
+```
+SIAM: Segment it all model, version 0.3  
+
+usage: siam-pred [-h] -i INPUT [-o OUTPUT] [-device DEVICE] [--verbose] [-m MODEL] [-r REGION] [--save_proba] [-voxelsize VOXELSIZE] [-nbthread NBTHREAD]
+
+options:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        input. Can be either a single file name or an input folder. If file: must be nifti (.nii.gz) and can only be 3D. No support for 4d images, use fslsplit to split 4d sequences into 3d images. If folder: all files
+                        ending with .nii.gz within that folder will be brain extracted.
+  -o OUTPUT, --output OUTPUT
+                        Optional. A string to specify an output prefix.
+  -device DEVICE        used to set on which device the prediction will run. Can be 'cuda' (=GPU), 'cpu' or 'mps'. Default: cuda
+  --verbose             Talk to me.
+  -m MODEL, --model MODEL
+                        Optional: For local use only : An integer to specify which model use -1 to have version 0.1 model
+  -r REGION, --region REGION
+                        Optional: regular expression to select specific region default value is .* which is equivalent to (Thal|GM|WM|Ventricules|Cereb|Head|Skull)
+  --save_proba          add this flag, to also save 4D model output (probabilities per class)
+  -voxelsize VOXELSIZE  float default 0. Important for too small head size (compare to adult ) if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value. This is
+                        equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. The result is converted back to original resolution and orientation
+  -nbthread NBTHREAD    number of thread used by nnunet for prediction, default is 4, reduce if memory issues on cpu
+```
+
 
 **NO Interpolation**: Use `-voxelsize 0.75`  for inputs with isotropic resolution in the range [0.6 1] mm. Adding this option
 will avoid the standard process which consist of : 1) reslice input data to 0.75 mm (as it was the choosen training resolution)
