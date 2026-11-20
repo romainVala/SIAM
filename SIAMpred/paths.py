@@ -314,6 +314,11 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*'):
                                        'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                           ]
             out_prefix = 'pred_DS783_Tles_cas05'
+        elif num_model == 84:
+            res_folder = os.path.join(siam_model_dir, 'Dataset784_Ano4DS_vAllen_nolesP3',
+                                      'nnUNetTrainerNoDA2000__nnUNetResEncUNetLPlans__3d_fullres$')
+            out_prefix = 'pred_DS784_Tis075'
+
         else:
             raise(f'Sorry no model file in {siam_model_dir}  ')
 
