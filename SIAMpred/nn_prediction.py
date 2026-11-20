@@ -382,7 +382,7 @@ def _prepare_region_inputs(input_files, tissue_seg_files, region, dirout_list, d
                 if data.sum() < min_voxels:
                     print(f"Skiping region {reg} because first level mash has less than {min_voxels} voxel")
                     continue
-                if  reg == "Lesion" :
+                if  reg == "Lesion" : #second input is tissue prediction
                     iout = il
                     crop_to_mask = False
                 else:
@@ -544,8 +544,8 @@ def _predict_subregions(predictor, region_model_folders, region_folds, input_fil
         if test_found_final_out:
             print('\tskiping because regions results exist')
             _remove_transient_files(next_input_file[ii], fname_ext)
-
             continue
+
         if region[ii] == "Lesion":
             predictor.force_no_background = False
         else:
@@ -802,46 +802,3 @@ def regroup_regions(
         ilall.save(fo_all)
         print(f"saving{fo_all}")
 
-def _merge_regions_into_tissue(tissue_seg_files, output_files, region_info, fname_ext):
-    """Ancien bloc DOMERGE (non utilisé pour l'instant, conservé tel quel)."""
-    dic_lab = region_info['dic_lab']
-    region = region_info['region']
-    dirout_list = region_info['dirout_list']
-    output_files_regions = region_info['output_files_regions']
-
-    ind_label, ind_region = 0, 0
-    dic_region_list = []
-    for one_region in dic_lab.keys():
-        if one_region in region:
-            fjson = gfile(dirout_list[ind_region], 'dataset.json')[0]
-            with open(fjson) as f:
-                dic_subregion = json.load(f)['labels']
-            del dic_subregion['background']
-            for k in dic_subregion.keys():
-                dic_subregion[k] = ind_label
-                ind_label += 1
-            dic_region_list.append(dic_subregion)
-            ind_region += 1
-        else:
-            dic_lab[one_region] = ind_label
-            ind_label += 1
-    tmap_no_region = tio.RemapLabels({iii: vv for iii, vv in enumerate(dic_lab.values())})
-    for one_region in region:
-        del dic_lab[one_region]
-    for dd in dic_region_list:
-        dic_lab.update(dd)
-    for ii, (fi, fo) in enumerate(zip(tissue_seg_files, output_files)):
-        il = tmap_no_region(tio.LabelMap(fi + fname_ext))
-        for fregion, dic_map in zip(output_files_regions, dic_region_list):
-            tmap = tio.RemapLabels({ind_val + 1: v for ind_val, v in enumerate(dic_map.values())})
-            tc = tio.Resample(target=il)
-            iregion = tc(tmap(tio.LabelMap(fregion[ii] + fname_ext)))
-            mask = iregion.data > 0
-            il['data'], iregion['data'] = il['data'].type(torch.ByteTensor), iregion['data'].type(torch.ByteTensor)
-            il['data'][mask] = iregion['data'][mask]
-        il.save(fo + fname_ext)
-
-    dic_lab = {k: v for k, v in sorted(dic_lab.items(), key=lambda item: item[1])}
-    fo_dic = get_parent_path(fo)[0] + '/dataset_region_labels.json'
-    with open(fo_dic, 'w') as file:
-        json.dump(dic_lab, file, indent=4, sort_keys=False)

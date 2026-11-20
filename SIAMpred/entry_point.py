@@ -43,9 +43,10 @@ def main():
                                               'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
 
-    parser.add_argument('-r', '--region', help='Optional: regular expression (regex) to select specific region '
-                                              'default value is all of course, adapt the regular expresion to keep what you wish'
-                                               ' --region="(CSF|GM|WM|Cereb|deep|Thal|Head|Skull)" '
+    parser.add_argument('-r', '--region', help='Optional: regular expression to select specific region models'
+                                              'default value is all of course, adapt the exemple to keep what you wish'
+                                               ' --region="(CSF|GM|WM|Cereb|deep|Thal|Head|Skull|Lesion)" '
+                                               'note the Lesion key, to add Lesion detection '
                         ,default='.*', type=str, required=False)
 
     parser.add_argument('--save_proba', action='store_true', required=False,
