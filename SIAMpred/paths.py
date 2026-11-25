@@ -77,7 +77,7 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
         ZENODO_DOWNLOAD_URL = 'TODO'
         res_folder = [os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
                                    'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_lowres'),
-                      os.path.join(siam_model_dir, 'v0.4','Dataset782_Ano4DS_vAllen_nolesP2',
+                      os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
                                    'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                       ]
         sub_region = gdir(os.path.join(siam_model_dir, 'siam_model_v04','regions'),
