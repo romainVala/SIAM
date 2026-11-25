@@ -38,21 +38,28 @@ def maybe_download_parameters(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
         install_model_from_zip_file(fname, folder_with_parameter_files)
         os.remove(fname)
 
-def maybe_download_parameters_tarfile(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
-    if isinstance(folder_with_parameter_files,list):
-        last_submodel = folder_with_parameter_files[1][-1]
-        if isfile(join(last_submodel,'fold_0', 'checkpoint_final.safetensors')):
-            return
-        else:
-            makethedownload
-    if not isfile(join(folder_with_parameter_files, 'fold_0', 'checkpoint_final.pth')):
-        folder_with_parameter_files = os.path.dirname(folder_with_parameter_files)
-        maybe_mkdir_p(folder_with_parameter_files)
-        print(f'Downlod and install model weight in your model dirs {folder_with_parameter_files}')
-        print(f'Sorry the model is quite big (~5G) do not forget to delete the model folder, if no more use ')
-        fname = download_file(ZENODO_DOWNLOAD_URL, join(folder_with_parameter_files, os.pardir, 'tmp_download.tar.gz'))
-        install_model_from_tar_file(fname, folder_with_parameter_files)
-        os.remove(fname)
+def has_checkpoint(model_folder):
+    """True if model_folder/fold_0 contains a final checkpoint (.pth or .safetensors)"""
+    return any(isfile(join(model_folder, 'fold_0', f'checkpoint_final{ext}')) for ext in ('.pth', '.safetensors'))
+
+def maybe_download_parameters_tarfile(folder_with_parameter_files, DOWNLOAD_URL, extract_dir=None):
+    """Download and untar the model weights if folder_with_parameter_files does not contain a checkpoint yet.
+    DOWNLOAD_URL : direct link to a .tar.gz file (zenodo or hugging face 'resolve' url)
+    extract_dir : where to untar the archive (default: parent dir of folder_with_parameter_files)
+    """
+    if has_checkpoint(folder_with_parameter_files):
+        return
+    if extract_dir is None:
+        extract_dir = os.path.dirname(folder_with_parameter_files)
+    maybe_mkdir_p(extract_dir)
+    print(f'Downlod and install model weight in your model dirs {extract_dir}')
+    print(f'Sorry the model is quite big (~5G) do not forget to delete the model folder, if no more use ')
+    fname = download_file(DOWNLOAD_URL, join(extract_dir, os.pardir, 'tmp_download.tar.gz'))
+    install_model_from_tar_file(fname, extract_dir)
+    os.remove(fname)
+    if not has_checkpoint(folder_with_parameter_files):
+        raise FileNotFoundError(f'After extracting {DOWNLOAD_URL} in {extract_dir}, no checkpoint_final found in '
+                                f'{join(folder_with_parameter_files, "fold_0")}. Check the archive structure')
 
 def get_siam_model_dir():
     if 'SIAM_MODEL_DIR' in os.environ:
@@ -73,18 +80,19 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
     siam_model_dir = get_siam_model_dir()
 
     if num_model==4: #next release region predictions
-        # the link where to get zip version of the models
-        ZENODO_DOWNLOAD_URL = 'TODO'
+        # hugging face link to the tar.gz version of the models (contains the siam_model_v04 folder)
+        DOWNLOAD_URL = 'https://huggingface.co/RomainValabregue/siam-model-v04/resolve/main/siam_model_v04.tar.gz'
         res_folder = [os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
                                    'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_lowres'),
                       os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
                                    'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                       ]
+        # download first, so that the region sub-models exist before searching for them
+        maybe_download_parameters_tarfile(res_folder[1], DOWNLOAD_URL, extract_dir=siam_model_dir)
         sub_region = gdir(os.path.join(siam_model_dir, 'siam_model_v04','regions'),
                           [region_regex, 'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
         res_folder = [res_folder, sub_region]
         out_prefix = 'siamV04'
-        maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
 
     elif num_model==0: #get it from zenodo
         # the link where to get zip version of the models
