@@ -35,3 +35,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["SIAMpred*"]
+
+[tool.setuptools.package-data]
+# label remap tables used by regroup_regions
+SIAMpred = ["*.csv"]
