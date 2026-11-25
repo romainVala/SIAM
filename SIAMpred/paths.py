@@ -75,12 +75,12 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
     if num_model==4: #next release region predictions
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'TODO'
-        res_folder = [os.path.join(siam_model_dir, 'v0.4','Dataset782_Ano4DS_vAllen_nolesP2',
+        res_folder = [os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
                                    'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_lowres'),
                       os.path.join(siam_model_dir, 'v0.4','Dataset782_Ano4DS_vAllen_nolesP2',
                                    'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
                       ]
-        sub_region = gdir(os.path.join(siam_model_dir, 'v0.4','regions'),
+        sub_region = gdir(os.path.join(siam_model_dir, 'siam_model_v04','regions'),
                           [region_regex, 'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
         res_folder = [res_folder, sub_region]
         out_prefix = 'siamV04'
