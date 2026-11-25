@@ -72,7 +72,7 @@ def get_siam_model_dir():
 def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
     siam_model_dir = get_siam_model_dir()
 
-    if num_model==0: #get it from zenodo
+    if num_model==4: #next release region predictions
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'TODO'
         res_folder = [os.path.join(siam_model_dir, 'v0.4','Dataset782_Ano4DS_vAllen_nolesP2',
@@ -86,7 +86,7 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
         out_prefix = 'siamV04'
         maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
 
-    elif num_model==3: #get it from zenodo
+    elif num_model==0: #get it from zenodo
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/17733431/files/pred_DS108_LcsfP_Ano.tar.gz?download=1'
         res_folder = os.path.join(siam_model_dir, 'v0.3','pred_DS108_LcsfP_Ano')
