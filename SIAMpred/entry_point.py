@@ -42,6 +42,9 @@ def main():
     parser.add_argument('-m', '--model', help='Optional: For local use only : An integer to specify which model '
                                               'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
+    parser.add_argument('-n', '--nb_fold', help='Optional: int between 1 and 4. use 1 to make quick prediction using'
+                                                'only 1 fold. default is 0, it will take all 5 folds  '
+                        ,default=0, type=int, required=False)
 
     parser.add_argument('-r', '--region', help='Optional: regular expression to select specific region models'
                                               'default value is all of course, adapt the exemple to keep what you wish'
@@ -60,7 +63,9 @@ def main():
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
     parser.add_argument('-nbthread', default=8, type=int, required=False,
-                        help=" number of thread used by nnunet for prediction, default is 4, reduce if memory issues on cpu")
+                        help=" number of thread used by nnunet for prediction, default is 8, reduce if memory issues on cpu")
+    parser.add_argument('--HR', action='store_true', required=False,
+                        help="SAve HR (model 0.5)")
 
     args = parser.parse_args()
 
@@ -99,11 +104,13 @@ def main():
         nn_predict(args.input,args.output,
                    device=torch.device(device_arg),
                    num_model = args.model,
+                   nb_fold = args.nb_fold,
                    region_regex = args.region,
                    verbose=args.verbose,
                    voxel_size=args.voxelsize,
                    num_process=args.nbthread,
-                   save_proba = args.save_proba
+                   save_proba = args.save_proba,
+                   save_highres = args.HR
                    )
 
 

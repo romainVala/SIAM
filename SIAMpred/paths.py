@@ -39,6 +39,12 @@ def maybe_download_parameters(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
         os.remove(fname)
 
 def maybe_download_parameters_tarfile(folder_with_parameter_files, ZENODO_DOWNLOAD_URL):
+    if isinstance(folder_with_parameter_files,list):
+        last_submodel = folder_with_parameter_files[1][-1]
+        if isfile(join(last_submodel,'fold_0', 'checkpoint_final.safetensors')):
+            return
+        else:
+            makethedownload
     if not isfile(join(folder_with_parameter_files, 'fold_0', 'checkpoint_final.pth')):
         folder_with_parameter_files = os.path.dirname(folder_with_parameter_files)
         maybe_mkdir_p(folder_with_parameter_files)
@@ -63,10 +69,24 @@ def get_siam_model_dir():
         model_dir = os.path.join(os.path.expanduser('~'), 'siam_params')
     return model_dir
 
-def get_model_path_and_fold(num_model:int , region_regex:str = '.*'):
+def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
     siam_model_dir = get_siam_model_dir()
 
     if num_model==0: #get it from zenodo
+        # the link where to get zip version of the models
+        ZENODO_DOWNLOAD_URL = 'TODO'
+        res_folder = [os.path.join(siam_model_dir, 'v0.4','Dataset782_Ano4DS_vAllen_nolesP2',
+                                   'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_lowres'),
+                      os.path.join(siam_model_dir, 'v0.4','Dataset782_Ano4DS_vAllen_nolesP2',
+                                   'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
+                      ]
+        sub_region = gdir(os.path.join(siam_model_dir, 'v0.4','regions'),
+                          [region_regex, 'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
+        res_folder = [res_folder, sub_region]
+        out_prefix = 'siamV04'
+        maybe_download_parameters_tarfile(res_folder, ZENODO_DOWNLOAD_URL)
+
+    elif num_model==3: #get it from zenodo
         # the link where to get zip version of the models
         ZENODO_DOWNLOAD_URL = 'https://zenodo.org/records/17733431/files/pred_DS108_LcsfP_Ano.tar.gz?download=1'
         res_folder = os.path.join(siam_model_dir, 'v0.3','pred_DS108_LcsfP_Ano')
@@ -328,16 +348,16 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*'):
         existing_fold = []
         for rrr in res_folder:
             if isinstance(rrr,list): #subregion case
-                existing_fold.append([get_fold_list(rrrr) for rrrr in rrr ])
+                existing_fold.append([get_fold_list(rrrr,nb_fold) for rrrr in rrr ])
             else:
-                existing_fold.append( get_fold_list(rrr) )
+                existing_fold.append( get_fold_list(rrr,nb_fold) )
         if isinstance(res_folder[1],list):
             print(f"Selecting model {num_model} with {len(res_folder[1])} subreg")
         else :
             print(f"Slecting casscade, model {num_model}")
 
     else:
-        existing_fold = get_fold_list(res_folder)
+        existing_fold = get_fold_list(res_folder,nb_fold)
 
         print(f'Selecting model {num_model} out Prefix {out_prefix} and found {len(existing_fold)} FOLD ')
         print(f'model folder is {res_folder}')
@@ -345,8 +365,10 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*'):
     return res_folder, existing_fold, out_prefix
 
 
-def get_fold_list(res):
+def get_fold_list(res, nb_fold=0):
     existing_fold = gdir(res,'fold')
+    if nb_fold:
+        existing_fold = existing_fold[:nb_fold]
     model_files = gfile(existing_fold, 'checkpoint_final') #.pth
     if len(model_files)==0:
         model_files = gfile(existing_fold, 'checkpoint_best') #extension can be now .pth or .safetensors
