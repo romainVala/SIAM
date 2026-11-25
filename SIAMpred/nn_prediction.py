@@ -885,7 +885,9 @@ def regroup_regions(
 
     for ft in fpreds:
         fn = f'{out_prefix}' + get_parent_path(ft)[1][len(out_prefix):]
-        fo_all = os.path.join(pred_dir, 'All_lab_AllenAssn_' + fn[5:])
+        # name of the merged outputs : 'pred_' is dropped (older prefixes), other prefixes (siamV03_ ...) are kept
+        fn_out = fn.removeprefix('pred_')
+        fo_all = os.path.join(pred_dir, 'All_lab_AllenAssn_' + fn_out)
         if os.path.isfile(fo_all):
             print(f'skiping existing out {fo_all}')
             continue
@@ -902,7 +904,7 @@ def regroup_regions(
             ilreg.data = ilreg.data.to(torch.int16)  # WM labels above 256 : needed for the remap
             dicreg = _load_tissue_labels(fpred)
             if 'allen' in regd:
-                fo = os.path.join(pred_dir, 'Lobes_GMAllen_' + fn[5:])
+                fo = os.path.join(pred_dir, 'Lobes_GMAllen_' + fn_out)
                 if not os.path.isfile(fo):
                     tmap_reg = tio.RemapLabels({v: dicVasLobe_name2val[dicNaRegLobe[k]] for k, v in dicreg.items()})
                     if ilreg.shape == dataremap.shape:
@@ -925,7 +927,7 @@ def regroup_regions(
                 dic_lab_tissue.pop(regn)
                 if "GM" in regd:  # GM AssN
                     tmap_reg = tio.RemapLabels({v: dicVasLobe_name2val[dicNvRegLobe[k]] for k, v in dicreg.items()})
-                    fo = os.path.join(pred_dir, 'Lobes_GMAssN_' + fn[5:])
+                    fo = os.path.join(pred_dir, 'Lobes_GMAssN_' + fn_out)
                     if not os.path.isfile(fo):
                         ilreg = tio.LabelMap(fpred[0])
                         if ilreg.shape == dataremap.shape:
