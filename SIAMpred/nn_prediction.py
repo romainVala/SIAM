@@ -508,6 +508,26 @@ class _IOFiles:
     out_prefix: str
 
 
+def _resolve_output_dir(input_file_or_folder, output_option, out_prefix):
+    """Output folder and output prefix from the -o option.
+
+    - None             : <input folder>/<out_prefix>
+    - relative string  : appended to the prefix -> <input folder>/<out_prefix><output_option>
+    - absolute path    : used as the output folder, prefix unchanged
+    (<input folder> is the parent folder when the input is a file)
+    """
+    if output_option:
+        output_option = os.path.expanduser(output_option)
+        if os.path.isabs(output_option):
+            return os.path.normpath(output_option), out_prefix
+        out_prefix += output_option
+    if os.path.isdir(input_file_or_folder):
+        input_dir = input_file_or_folder
+    else:
+        input_dir = get_parent_path(input_file_or_folder)[0]
+    return join(input_dir, out_prefix), out_prefix
+
+
 def _resolve_input_output(input_file_or_folder, output_file_or_folder, out_prefix):
     """Return an _IOFiles, or None if no input file is found."""
     if not input_file_or_folder.startswith('/'):
@@ -518,18 +538,9 @@ def _resolve_input_output(input_file_or_folder, output_file_or_folder, out_prefi
         excluded_prefix = ('toCano_', out_prefix, 'proba_')
         input_files = [f for f in gfile(input_file_or_folder, '.*nii')
                        if not os.path.basename(f).startswith(excluded_prefix)]
-
-        if output_file_or_folder is not None:
-            out_prefix += output_file_or_folder
-        else:
-            output_file_or_folder = ''
-        if not output_file_or_folder.startswith('/'):
-            output_file_or_folder = join(input_file_or_folder, f'{out_prefix}')
     else:
         input_files = [input_file_or_folder]
-        if output_file_or_folder is not None:
-            out_prefix += output_file_or_folder
-        output_file_or_folder = os.path.join(get_parent_path(input_files)[0][0], out_prefix)
+    output_file_or_folder, out_prefix = _resolve_output_dir(input_file_or_folder, output_file_or_folder, out_prefix)
 
     if len(input_files) == 0:
         return None
@@ -844,17 +855,13 @@ def regroup_regions(
 
     model_type = _get_model_type(folder_with_parameter_files)
     print(f" model {num_model} type: {model_type})")
-    if output_file_or_folder is None:
-        output_file_or_folder = ''
-    out_prefix += output_file_or_folder
+    pred_dir, out_prefix = _resolve_output_dir(input_file_or_folder, output_file_or_folder, out_prefix)
 
     # regex anchored with ^ : high res outputs (r05_pred_...) must not be matched
     if os.path.isfile(input_file_or_folder):
-        input_path, input_name = get_parent_path(input_file_or_folder)
-        pred_dir = os.path.join(input_path, out_prefix)
+        input_name = get_parent_path(input_file_or_folder)[1]
         pred_regex = f'^{out_prefix}.*{input_name}'
     else:
-        pred_dir = os.path.join(input_file_or_folder, out_prefix)
         pred_regex = f'^{out_prefix}.*nii'
 
     fpreds = gfile(pred_dir, pred_regex)

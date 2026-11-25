@@ -28,8 +28,9 @@ def main():
                                        'nifti (.nii.gz) and can only be 3D. No support for 4d images, use fslsplit to '
                                        'split 4d sequences into 3d images. If folder: all files ending with .nii.gz '
                                        'within that folder will be brain extracted.', required=True, type=str)
-    parser.add_argument('-o', '--output', help='Optional. A string to specify an output prefix. '
-                                     , required=False, type=str)
+    parser.add_argument('-o', '--output', help='Optional. A relative string is added to the output prefix (outputs in '
+                                          '<input folder>/<prefix><string>). An absolute path is used as the '
+                                          'output folder (default prefix kept).', required=False, type=str)
     parser.add_argument('-device', default='cuda', type=str, required=False,
                         help='used to set on which device the prediction will run. Can be \'cuda\' (=GPU), \'cpu\' or '
                              '\'mps\'. Default: cuda')

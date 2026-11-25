@@ -61,6 +61,8 @@ siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX -m 3
 The above command will look for all nifti files in the INPUT_FOLDER
 and save the predictions in a sub-folder containing the OUTPUT_PREFIX name.
 if `-o` is not specify, result are store in the same folder, with a prefix
+if `-o` is an absolute path (ex: `-o /data/siam_out`), it is used as the output folder (created if needed)
+and the output files keep the default model prefix
 -m model number (default 3, int within [1 2 3] )
 
 ### More options:
