@@ -63,8 +63,10 @@ def main():
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
-    parser.add_argument('-nbthread', default=8, type=int, required=False,
-                        help=" number of thread used by nnunet for prediction, default is 8, reduce if memory issues on cpu")
+    parser.add_argument('-nbthread', default=None, type=int, required=False,
+                        help=" number of cpu threads used for prediction. Default: all the cpus available to this "
+                             "process (taskset / SLURM allocation are respected). It also bounds the number of "
+                             "worker processes (at most 2 on cpu/mps, 8 on gpu) : reduce it if memory issues")
     parser.add_argument('--HR', action='store_true', required=False,
                         help="SAve HR (model 0.5)")
 
@@ -90,9 +92,11 @@ def main():
             # transparently fall back to CPU instead of crashing.
             os.environ.setdefault('PYTORCH_ENABLE_MPS_FALLBACK', '1')
 
-    #arrg, not sure how to force nnunet to really use the request nbthread it is still using the env variable
-    os.environ['nnUNet_def_n_proc'] = str(args.nbthread)
-    # I put the import here so the default_num_processes set by nnunet does use the env set done here
+    # nnUNet reads nnUNet_def_n_proc once, at import, and caps the network threads with it :
+    # it must be set before importing nn_prediction (which imports nnunetv2)
+    from SIAMpred.paths import available_cpus  # paths does not import nnunetv2
+    nb_threads = args.nbthread if args.nbthread else available_cpus()
+    os.environ['nnUNet_def_n_proc'] = str(nb_threads)
     from SIAMpred.nn_prediction import nn_predict,regroup_regions
 
     if args.regroup_regions:
@@ -109,7 +113,7 @@ def main():
                    region_regex = args.region,
                    verbose=args.verbose,
                    voxel_size=args.voxelsize,
-                   num_process=args.nbthread,
+                   num_process=nb_threads,
                    save_proba = args.save_proba,
                    save_highres = args.HR
                    )
