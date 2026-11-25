@@ -35,10 +35,11 @@ ENV PIP_NO_CACHE_DIR=1 \
 RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
 
-# torch first, from the PyTorch index, so that nnunetv2 does not pull the
-# default (CUDA) wheel from PyPI. torchvision is not needed.
+# torch and torchvision first, together from the PyTorch index, so that the
+# dependencies (nnunetv2 -> dynamic_network_architectures -> timm ->
+# torchvision) do not pull mismatched default wheels from PyPI.
 RUN pip install --upgrade pip setuptools wheel \
- && pip install torch --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
+ && pip install torch torchvision --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
 
 # the rest of the dependencies (nnunetv2, torchio, ...) then the package itself
 COPY pyproject.toml README.md LICENSE labels.json /src/
@@ -47,7 +48,10 @@ RUN pip install /src \
  # trim what is not needed at run time
  && find /opt/venv -depth \( -name __pycache__ -o -name tests -o -name test \) \
         -type d -path '*/site-packages/*' -exec rm -rf {} + \
- && find /opt/venv -name '*.pyc' -delete
+ && find /opt/venv -name '*.pyc' -delete \
+ # fail the build early if the stack does not import (eg torch/torchvision mismatch)
+ && python -c "import SIAMpred.nn_prediction, dynamic_network_architectures.architectures.primus" \
+ && find /opt/venv -name '__pycache__' -type d -prune -exec rm -rf {} +
 
 # ---------------------------------------------------------------- runtime ----
 FROM python:${PYTHON_VERSION}-slim
