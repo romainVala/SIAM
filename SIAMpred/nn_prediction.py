@@ -27,8 +27,9 @@ from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_pa
 SEG_EXT = '.nii.gz'  # extension of everything written by nnUNet / intermediate files
 # nnUNet readers sharing the same axis convention: array (c, z, y, x), spacing (z, y, x)
 COMPATIBLE_READERS = ('SimpleITKIO', 'NibabelIO', 'NibabelIOWithReorient')
-MAX_WORKERS_GPU = 8  # preprocessing / export worker processes (each one holds a whole case in RAM)
-MAX_WORKERS_CPU = 2  # cpu / mps : the network already uses all threads, and RAM is the limit
+# default number of preprocessing / export worker processes (each one holds a whole case in RAM)
+DEFAULT_WORKERS_GPU = 4  # the gpu predicts one case at a time : more workers would only wait, using RAM
+DEFAULT_WORKERS_CPU = 2  # cpu / mps : the network already uses the cpus, and RAM is the limit
 
 
 
@@ -509,14 +510,16 @@ def _cleanup_json_files(output_files, out_prefix):
         pass
 
 
-def _get_num_processes(num_threads, n_files, device):
+def _get_num_processes(num_threads, num_workers, n_files, device):
     """
     Worker processes (preprocessing, export) and torch threads of each export worker.
-    Never more workers than cases or than threads ; the export threads share the requested threads,
-    so that export workers running while the network predicts the next case do not oversubscribe the cpus.
+    num_workers (RAM knob) : None -> DEFAULT_WORKERS_GPU / DEFAULT_WORKERS_CPU ; never more workers than cases.
+    The export workers share the cpu threads, so that exports running while the network predicts
+    the next case do not oversubscribe the cpus.
     """
-    max_workers = MAX_WORKERS_GPU if device.type == 'cuda' else MAX_WORKERS_CPU
-    n = max(1, min(num_threads, n_files, max_workers))
+    if num_workers is None:
+        num_workers = DEFAULT_WORKERS_GPU if device.type == 'cuda' else DEFAULT_WORKERS_CPU
+    n = max(1, min(num_workers, n_files))
     export_threads = max(1, num_threads // n)
     return n, n, export_threads  # (preprocessing, export, threads per export worker)
 
@@ -752,6 +755,7 @@ def nn_predict(
         model_spacing_mode='reference',
         verbose: bool = False,
         num_process=None,
+        num_workers=None,
         save_proba=False,
         save_highres=False,
         do_merge_regions=False,
@@ -767,8 +771,10 @@ def nn_predict(
                       (consistent scaling for all models, as the cascade low res stage)
         'matching'  : true header spacing (only models at the reference resolution are forced)
     num_process :
-        torch threads for the network (None : all the cpus available to this process) ; also bounds
-        the number of preprocessing / export worker processes (see _get_num_processes)
+        cpu threads (None : all the cpus available to this process) : network on cpu, shared by the export workers
+    num_workers :
+        preprocessing / export worker processes, each one holds a whole case in RAM
+        (None : 4 on gpu, 2 on cpu/mps ; never more than the number of cases)
     save_highres :
         also save the predictions at the resolution of the final tissue model (prefix r05_, r075_ ...)
         for the final tissue model and the region models at the same resolution
@@ -826,7 +832,7 @@ def nn_predict(
     fname_noext = _split_ext(os.path.basename(input_files[0]))[1]
 
     num_processes_preprocessing, num_processes_segmentation_export, predictor.export_threads = \
-        _get_num_processes(num_process, len(output_files), device)
+        _get_num_processes(num_process, num_workers, len(output_files), device)
     print(f'{num_process} threads (network), {num_processes_preprocessing} / {num_processes_segmentation_export} '
           f'worker processes (preproc/export), {predictor.export_threads} threads per export worker')
 

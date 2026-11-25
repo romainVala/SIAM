@@ -64,9 +64,12 @@ def main():
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
     parser.add_argument('-nbthread', default=None, type=int, required=False,
-                        help=" number of cpu threads used for prediction. Default: all the cpus available to this "
-                             "process (taskset / SLURM allocation are respected). It also bounds the number of "
-                             "worker processes (at most 2 on cpu/mps, 8 on gpu) : reduce it if memory issues")
+                        help=" number of cpu threads. Default: all the cpus available to this process "
+                             "(taskset / SLURM allocation are respected). Matters mostly on cpu, for the network")
+    parser.add_argument('-nbworker', default=None, type=int, required=False,
+                        help=" number of worker processes for reading/preprocessing and writing the cases, "
+                             "each one holds a whole case in RAM. Default: 4 on gpu, 2 on cpu/mps (never more than "
+                             "the number of input files). Reduce it (to 1) if memory issues")
     parser.add_argument('--HR', action='store_true', required=False,
                         help="SAve HR (model 0.5)")
 
@@ -114,6 +117,7 @@ def main():
                    verbose=args.verbose,
                    voxel_size=args.voxelsize,
                    num_process=nb_threads,
+                   num_workers=args.nbworker,
                    save_proba = args.save_proba,
                    save_highres = args.HR
                    )
