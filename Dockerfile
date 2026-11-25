@@ -41,7 +41,13 @@ ENV PATH=/opt/venv/bin:$PATH
 RUN pip install --upgrade pip setuptools wheel \
  && pip install torch torchvision --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
 
-# the rest of the dependencies (nnunetv2, torchio, ...) then the package itself
+# nnU-Net: the v0.4 weights are .safetensors, which only nnU-Net >= 2.9 can
+# load. 2.9 is not on PyPI yet, so take a pinned commit of the GitHub master.
+# Once released, build with --build-arg NNUNET_SPEC="nnunetv2>=2.9"
+ARG NNUNET_SPEC="nnunetv2 @ https://github.com/MIC-DKFZ/nnUNet/archive/9920db74331c3a8a6813357c9ba4fde5e5104998.tar.gz"
+RUN pip install "${NNUNET_SPEC}"
+
+# the rest of the dependencies (torchio, ...) then the package itself
 COPY pyproject.toml README.md LICENSE labels.json /src/
 COPY SIAMpred /src/SIAMpred
 RUN pip install /src \
