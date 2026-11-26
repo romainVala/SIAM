@@ -1,0 +1,8 @@
+*
+!pyproject.toml
+!README.md
+!LICENSE
+!labels.json
+!SIAMpred/
+**/__pycache__
+**/*.pyc

@@ -90,27 +90,34 @@ siam-pred -h
 ```
 
 ## Docker or Singularity
-   ```bash
-   docker pull romainvalabregue/siam 
-   ```
-   
-   Or with Singularity
-   ```bash
-  singularity build siam_v0.3.simg docker://romainvalabregue/siam
-   ```
-   Example to run with gpu ()
-   ```bash
-  singularity run --nv -B `pwd`:/data  siam_v0.3.simg siam-pred  -i /data/my_image.nii.gz 
-   ```
-   For linux user, with limited disk space on $HOME or on /tmp, you can set following environement variable to location with enough space
-   ```bash
-   export SINGULARITY_TMPDIR=/data/singularity/tpm
-   export SINGULARITY_CACHEDIR=/data/singularity/cache
-   ```
-   (may be also DOCKER_CONFIG=  is you do not want to use the .docker in your home)
 
-   image will be ~10G and cache dir ~ 10G (can be removed after) tmp dir ~32G (but automaticaly deleted )
+### Build the image
+The same `Dockerfile` builds a GPU or a CPU image (the CPU one is much smaller):
+   ```bash
+   docker build -t siam:gpu .                                  # GPU, CUDA 12.6 (Pascal to Hopper cards), ~7.5 GB
+   docker build --build-arg TORCH_VARIANT=cu128 -t siam:gpu .  # GPU, for recent cards (Blackwell, RTX 50xx)
+   docker build --build-arg TORCH_VARIANT=cpu -t siam:cpu .    # CPU only, ~1.6 GB
+   ```
 
+### Run
+The model weights are not in the image: they are downloaded at the first run into `/models`
+(~5 GB for the default model, ~15 GB for `-m 4`). Mount a host folder there so they are kept between runs:
+   ```bash
+   # GPU (needs the NVIDIA container toolkit)
+   docker run --rm --gpus all --shm-size=8g -u $(id -u):$(id -g) \
+       -v ~/siam_params:/models -v $PWD:/data siam:gpu -i /data/my_image.nii.gz
+   # CPU
+   docker run --rm --shm-size=8g -u $(id -u):$(id -g) \
+       -v ~/siam_params:/models -v $PWD:/data siam:cpu -i /data/my_image.nii.gz -device cpu
+   ```
+   `-u $(id -u):$(id -g)` makes the output files belong to you instead of root.
+
+### Singularity / Apptainer
+   ```bash
+   singularity build siam.sif docker-daemon://siam:gpu
+   singularity exec --nv -B ~/siam_params:/models -B $PWD:/data siam.sif siam-pred -i /data/my_image.nii.gz
+   ```
+   With limited disk space on $HOME or /tmp, set `SINGULARITY_TMPDIR` and `SINGULARITY_CACHEDIR` to a location with enough space.
 
 ## Apple Silicon (Metal / MPS)
 
