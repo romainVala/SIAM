@@ -17,20 +17,14 @@ import nnunetv2.inference.predict_from_raw_data as _nnunet_pfrd
 from nnunetv2.inference.export_prediction import export_prediction_from_logits as _nnunet_export_prediction_from_logits
 from nnunetv2.imageio.base_reader_writer import BaseReaderWriter
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
-from nnunetv2.configuration import default_num_processes as _nnunet_default_num_processes
 sys.stdout = sys.__stdout__
 
-from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile, gdir, \
-    available_cpus
+from SIAMpred.paths import get_model_path_and_fold, addprefixtofilenames, get_parent_path, gfile, gdir
 
 
 SEG_EXT = '.nii.gz'  # extension of everything written by nnUNet / intermediate files
 # nnUNet readers sharing the same axis convention: array (c, z, y, x), spacing (z, y, x)
 COMPATIBLE_READERS = ('SimpleITKIO', 'NibabelIO', 'NibabelIOWithReorient')
-# default number of preprocessing / export worker processes (each one holds a whole case in RAM)
-DEFAULT_WORKERS_GPU = 4  # the gpu predicts one case at a time : more workers would only wait, using RAM
-DEFAULT_WORKERS_CPU = 2  # cpu / mps : the network already uses the cpus, and RAM is the limit
-
 
 
 @contextmanager
@@ -253,10 +247,6 @@ def _export_prediction_from_logits_siam(predicted_array_or_file, properties_dict
                                         plans_manager, dataset_json_dict_or_file, output_file_truncated,
                                         save_probabilities=False, *args, **kwargs):
     """nnUNet export + optional high res export (module level : pickled for the export workers)."""
-    # nnUNet passes no thread count : by default each export worker would take nnUNet_def_n_proc threads
-    export_threads = plans_manager.plans.get('siam_export_threads')
-    if export_threads is not None and len(args) == 0 and 'num_threads_torch' not in kwargs:
-        kwargs['num_threads_torch'] = export_threads
     prefix = plans_manager.plans.get('siam_highres_prefix')
     if prefix is not None and 'siam_stuff' in properties_dict:
         _export_highres(predicted_array_or_file, properties_dict, plans_manager,
@@ -313,7 +303,6 @@ class nnUNetPredictorSIAM(nnUNetPredictor):
     save_highres = False        # toggled by nn_predict (False for the cascade low res stage)
     highres_spacing = None      # spacing of the final tissue model (set by nn_predict)
     highres_prefix = None
-    export_threads = None       # torch threads of each export worker (set by nn_predict)
 
     def _compute_forced_spacing(self):
         if self.voxel_size > 0:
@@ -354,7 +343,6 @@ class nnUNetPredictorSIAM(nnUNetPredictor):
                   f'input spacing {"forced to " + str(forced_spacing) if forced_spacing else "from header"}')
         self.plans_manager.plans['siam_forced_spacing'] = forced_spacing
         self.plans_manager.plans['siam_highres_prefix'] = self._compute_highres_prefix()
-        self.plans_manager.plans['siam_export_threads'] = self.export_threads
         self.plans_manager.__class__ = PlansManagerCanonical  # inject our reader/writer
 
     @torch.inference_mode()  # needed : in-place modification of an "inference tensor"
@@ -407,7 +395,6 @@ def get_nn_predictor(
         device: torch.device = torch.device('cuda'),
         verbose: bool = False,
         voxel_size=0,
-        num_threads=None,
 ):
     os.environ['nnUNet_compile'] = 'F'
     # nnUNet only honours perform_everything_on_device on CUDA, and prints
@@ -424,16 +411,6 @@ def get_nn_predictor(
             verbose_preprocessing=verbose
         )
     predictor.voxel_size = voxel_size
-
-    if num_threads is None:
-        num_threads = available_cpus()
-    # nnUNet caps the network threads to nnUNet_def_n_proc (read once, at import) : the CLI sets it before the
-    # import, but from python an import done earlier may keep a lower value
-    if _nnunet_default_num_processes < num_threads:
-        print(f'WARNING nnUNet_def_n_proc={_nnunet_default_num_processes} < {num_threads} requested threads : '
-              f'the network will only use {_nnunet_default_num_processes} threads '
-              f'(set os.environ["nnUNet_def_n_proc"] before importing SIAMpred.nn_prediction)')
-    torch.set_num_threads(num_threads)  # cpu inference ; on gpu, the cpu side (resampling) of the main process
     return predictor
 
 
@@ -510,18 +487,11 @@ def _cleanup_json_files(output_files, out_prefix):
         pass
 
 
-def _get_num_processes(num_threads, num_workers, n_files, device):
-    """
-    Worker processes (preprocessing, export) and torch threads of each export worker.
-    num_workers (RAM knob) : None -> DEFAULT_WORKERS_GPU / DEFAULT_WORKERS_CPU ; never more workers than cases.
-    The export workers share the cpu threads, so that exports running while the network predicts
-    the next case do not oversubscribe the cpus.
-    """
-    if num_workers is None:
-        num_workers = DEFAULT_WORKERS_GPU if device.type == 'cuda' else DEFAULT_WORKERS_CPU
-    n = max(1, min(num_workers, n_files))
-    export_threads = max(1, num_threads // n)
-    return n, n, export_threads  # (preprocessing, export, threads per export worker)
+def _get_num_processes(num_process, n_files, device):
+    n = max(1, min(num_process, n_files))  # no need for more workers than cases
+    if device.type == 'cpu':
+        n = max(1, min(n, 2))  # the network already uses all threads
+    return n, n  # (preprocessing, export)
 
 
 # ============================================================================
@@ -754,8 +724,7 @@ def nn_predict(
         voxel_size=0,
         model_spacing_mode='reference',
         verbose: bool = False,
-        num_process=None,
-        num_workers=None,
+        num_process=8,
         save_proba=False,
         save_highres=False,
         do_merge_regions=False,
@@ -770,11 +739,6 @@ def nn_predict(
         'reference' : image declared at the reference spacing, then resampled by nnUNet
                       (consistent scaling for all models, as the cascade low res stage)
         'matching'  : true header spacing (only models at the reference resolution are forced)
-    num_process :
-        cpu threads (None : all the cpus available to this process) : network on cpu, shared by the export workers
-    num_workers :
-        preprocessing / export worker processes, each one holds a whole case in RAM
-        (None : 4 on gpu, 2 on cpu/mps ; never more than the number of cases)
     save_highres :
         also save the predictions at the resolution of the final tissue model (prefix r05_, r075_ ...)
         for the final tissue model and the region models at the same resolution
@@ -815,10 +779,7 @@ def nn_predict(
     input_files = io_files.input_files
     output_files = io_files.output_files  # without extension
 
-    if num_process is None:
-        num_process = available_cpus()
-    predictor = get_nn_predictor(use_tta=False, device=device, verbose=verbose, voxel_size=voxel_size,
-                                 num_threads=num_process)
+    predictor = get_nn_predictor(use_tta=False, device=device, verbose=verbose, voxel_size=voxel_size)
     if voxel_size < 0:
         spacings = [_get_model_spacing(m) for m in _flatten_models(folder_with_parameter_files)]
         predictor.reference_spacing = min(spacings, key=lambda s: float(np.prod(s)))
@@ -831,10 +792,9 @@ def nn_predict(
     predictor.save_highres = save_highres
     fname_noext = _split_ext(os.path.basename(input_files[0]))[1]
 
-    num_processes_preprocessing, num_processes_segmentation_export, predictor.export_threads = \
-        _get_num_processes(num_process, num_workers, len(output_files), device)
-    print(f'{num_process} threads (network), {num_processes_preprocessing} / {num_processes_segmentation_export} '
-          f'worker processes (preproc/export), {predictor.export_threads} threads per export worker')
+    num_processes_preprocessing, num_processes_segmentation_export = \
+        _get_num_processes(num_process, len(output_files), device)
+    print(f'num process {num_processes_preprocessing} / {num_processes_segmentation_export}  (preproc/export)')
 
     # ---- prediction
     if model_type == 'simple':

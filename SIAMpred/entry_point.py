@@ -63,13 +63,10 @@ def main():
                              "if not zero, this will set the nifit header voxel resolution (!!without reslicing!!) to isotropic resolution with the given value."
                              " This is equivalent to apply a zoom factor, but changing only the nifti header avoid an extra interpolation. "
                              "The result is converted back to original resolution and orientation")
-    parser.add_argument('-nbthread', default=None, type=int, required=False,
-                        help=" number of cpu threads. Default: all the cpus available to this process "
-                             "(taskset / SLURM allocation are respected). Matters mostly on cpu, for the network")
-    parser.add_argument('-nbworker', default=None, type=int, required=False,
-                        help=" number of worker processes for reading/preprocessing and writing the cases, "
-                             "each one holds a whole case in RAM. Default: 4 on gpu, 2 on cpu/mps (never more than "
-                             "the number of input files). Reduce it (to 1) if memory issues")
+    parser.add_argument('-nbworker', default=4, type=int, required=False,
+                        help=" gpu only : number of worker processes reading/preprocessing and writing the cases "
+                             "(each one holds a whole case in RAM), default is 4, reduce if memory issues. "
+                             "On cpu, at most 2 workers, and the network uses all the available cpus")
     parser.add_argument('--HR', action='store_true', required=False,
                         help="SAve HR (model 0.5)")
 
@@ -95,11 +92,17 @@ def main():
             # transparently fall back to CPU instead of crashing.
             os.environ.setdefault('PYTORCH_ENABLE_MPS_FALLBACK', '1')
 
-    # nnUNet reads nnUNet_def_n_proc once, at import, and caps the network threads with it :
-    # it must be set before importing nn_prediction (which imports nnunetv2)
-    from SIAMpred.paths import available_cpus  # paths does not import nnunetv2
-    nb_threads = args.nbthread if args.nbthread else available_cpus()
-    os.environ['nnUNet_def_n_proc'] = str(nb_threads)
+    if device_arg == 'cpu':
+        # all the cpus allocated to this process (taskset / SLURM), not all the cpus of the node
+        try:
+            nb_cpu = len(os.sched_getaffinity(0))
+        except AttributeError:  # macOS / Windows
+            nb_cpu = os.cpu_count()
+        torch.set_num_threads(nb_cpu)
+        # nnUNet caps the network threads with nnUNet_def_n_proc (default 8), read once when nnunetv2 is imported
+        os.environ['nnUNet_def_n_proc'] = str(nb_cpu)
+        print(f'cpu prediction with {nb_cpu} threads')
+    # I put the import here so the default_num_processes set by nnunet does use the env set done here
     from SIAMpred.nn_prediction import nn_predict,regroup_regions
 
     if args.regroup_regions:
@@ -116,8 +119,7 @@ def main():
                    region_regex = args.region,
                    verbose=args.verbose,
                    voxel_size=args.voxelsize,
-                   num_process=nb_threads,
-                   num_workers=args.nbworker,
+                   num_process=args.nbworker,
                    save_proba = args.save_proba,
                    save_highres = args.HR
                    )

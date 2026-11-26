@@ -61,14 +61,6 @@ def maybe_download_parameters_tarfile(folder_with_parameter_files, DOWNLOAD_URL,
         raise FileNotFoundError(f'After extracting {DOWNLOAD_URL} in {extract_dir}, no checkpoint_final found in '
                                 f'{join(folder_with_parameter_files, "fold_0")}. Check the archive structure')
 
-def available_cpus():
-    """CPUs this process may use (respects taskset / SLURM / cgroup affinity, unlike os.cpu_count)."""
-    try:
-        return len(os.sched_getaffinity(0))
-    except AttributeError:  # macOS / Windows
-        return os.cpu_count() or 1
-
-
 def get_siam_model_dir():
     if 'SIAM_MODEL_DIR' in os.environ:
         model_dir = os.environ['SIAM_MODEL_DIR']
