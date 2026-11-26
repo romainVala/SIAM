@@ -411,9 +411,6 @@ def get_nn_predictor(
             verbose_preprocessing=verbose
         )
     predictor.voxel_size = voxel_size
-
-    if device.type == 'cpu':
-        torch.set_num_threads(os.cpu_count())
     return predictor
 
 
