@@ -99,6 +99,17 @@ The same `Dockerfile` builds a GPU or a CPU image (the CPU one is much smaller):
    docker build --build-arg TORCH_VARIANT=cpu -t siam:cpu .    # CPU only, ~1.6 GB
    ```
 
+### Mac (Apple Silicon)
+On an arm64 machine the `Dockerfile` installs the CPU build of torch automatically, so from the repository folder:
+   ```bash
+   docker build -t siam:arm64 .
+   docker run --rm --shm-size=8g -v ~/siam_params:/models -v $PWD:/data siam:arm64 -i /data/my_image.nii.gz -device cpu
+   ```
+   - Docker on macOS cannot use the Apple GPU (Metal/MPS): the container runs on CPU only.
+     For MPS, install `siam-pred` natively with pip (see [Apple Silicon](#apple-silicon-metal--mps)).
+   - If the container gets killed during the prediction, increase the memory given to Docker Desktop (Settings > Resources).
+   - An image built on a Mac is arm64 only; to publish it separately, tag it e.g. `romainvalabregue/siam:arm64` before `docker push`.
+
 ### Run
 The model weights are not in the image: they are downloaded at the first run into `/models`
 (~5 GB for the default model, ~15 GB for `-m 4`). Mount a host folder there so they are kept between runs:

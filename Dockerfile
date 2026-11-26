@@ -8,6 +8,10 @@
 #     docker build --build-arg TORCH_VARIANT=cu128 -t siam:gpu-cu128 .
 #   CPU only (much smaller image)
 #     docker build --build-arg TORCH_VARIANT=cpu -t siam:cpu .
+#   Mac with Apple Silicon (or any arm64 machine): CPU is chosen automatically
+#     docker build -t siam:arm64 .
+#   (Docker on macOS has no access to the Apple GPU (Metal/MPS): to use it,
+#    install siam-pred natively with pip instead.)
 #
 # Model weights are NOT in the image: they are downloaded at the first run
 # into /models. Mount a host folder there so they are kept between runs:
@@ -26,7 +30,9 @@ ARG PYTHON_VERSION=3.12
 FROM python:${PYTHON_VERSION}-slim AS builder
 
 # cpu | cu126 | cu128 ... (any tag of https://download.pytorch.org/whl/)
-ARG TORCH_VARIANT=cu126
+# empty = cu126 on amd64, cpu on arm64 (Apple Silicon has no CUDA)
+ARG TORCH_VARIANT=
+ARG TARGETARCH
 
 ENV PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -38,8 +44,12 @@ ENV PATH=/opt/venv/bin:$PATH
 # torch and torchvision first, together from the PyTorch index, so that the
 # dependencies (nnunetv2 -> dynamic_network_architectures -> timm ->
 # torchvision) do not pull mismatched default wheels from PyPI.
-RUN pip install --upgrade pip setuptools wheel \
- && pip install torch torchvision --index-url https://download.pytorch.org/whl/${TORCH_VARIANT}
+RUN arch="${TARGETARCH:-$(uname -m)}" \
+ && case "$arch" in arm64|aarch64) default=cpu ;; *) default=cu126 ;; esac \
+ && variant="${TORCH_VARIANT:-$default}" \
+ && echo "torch variant: $variant (arch $arch)" \
+ && pip install --upgrade pip setuptools wheel \
+ && pip install torch torchvision --index-url "https://download.pytorch.org/whl/$variant"
 
 # nnU-Net: the v0.4 weights are .safetensors, which only nnU-Net >= 2.9 can
 # load. 2.9 is not on PyPI yet, so take a pinned commit of the GitHub master.
