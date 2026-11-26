@@ -722,7 +722,7 @@ def nn_predict(
         nb_fold: int = 0,
         region_regex: str = '.*',
         voxel_size=0,
-        model_spacing_mode='reference',
+        model_spacing_mode='matching',
         verbose: bool = False,
         num_process=8,
         save_proba=False,
