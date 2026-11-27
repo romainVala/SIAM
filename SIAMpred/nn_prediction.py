@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import partial
 import json, re
 
+import shutil
 import torch, numpy as np
 import pandas as pd
 import torchio as tio
@@ -442,9 +443,26 @@ def _get_model_type(folder_with_parameter_files):
     return 'cascade'
 
 
+def _outputs_exist(model_folder, output_files):
+    """
+    True if all the predictions (output_files without extension) already exist : the model is then not loaded.
+    The model json files (needed by the next steps and regroup_regions) are copied next to the outputs,
+    as nnUNet does when it runs.
+    """
+    if not all(os.path.isfile(o + SEG_EXT) for o in output_files):
+        return False
+    for dout in {os.path.dirname(o) for o in output_files}:
+        for fjson in ('dataset.json', 'plans.json'):
+            shutil.copyfile(join(model_folder, fjson), join(dout, fjson))
+    print(f'all {len(output_files)} outputs exist (ex {output_files[0]}{SEG_EXT}), skipping model {model_folder}')
+    return True
+
+
 def _run_prediction(predictor, model_folder, folds, input_files_lists, output_files,
                     save_probabilities, num_processes_preprocessing, num_processes_segmentation_export,
                     folder_with_segs_from_prev_stage=None):
+    if _outputs_exist(model_folder, output_files):
+        return
     predictor.initialize_from_trained_model_folder(model_folder, folds)
     predictor.predict_from_files(
         input_files_lists,
@@ -574,6 +592,8 @@ def _get_first_stage_paths(output_files, input_is_file, out_prefix, fname_noext)
 def _predict_cascade_fullres(predictor, model_folder, folds, input_files, output_files_first_stage,
                              output_files, save_proba,
                              num_processes_preprocessing, num_processes_segmentation_export):
+    if _outputs_exist(model_folder, output_files):
+        return
     print(f"runing second cascade on {len(input_files)} first input {input_files[0]}, output {output_files[0]}")
     predictor.initialize_from_trained_model_folder(model_folder, folds)
     predictor.predict_from_files_and_prev_seg(
