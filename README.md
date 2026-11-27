@@ -65,6 +65,26 @@ if `-o` is an absolute path (ex: `-o /data/siam_out`), it is used as the output 
 and the output files keep the default model prefix
 -m model number (default 3, int within [1 2 3] )
 
+### Model 4 (v0.4, tissue + regions) : choose what to download
+The v0.4 weights are stored on [hugging face](https://huggingface.co/RomainValabregue/siam-model-v04) as separate
+files (one per model and per fold): only the models needed by your command are downloaded (~20G for everything).
+
+```bash
+siam-pred -i INPUT -m 4                      # tissue (cascade 0.5mm) + all the region models
+siam-pred -i INPUT -m 4 -r CSF,GM_allen,WM   # tissue + only these 3 region models
+siam-pred -i INPUT -m 4 -r none              # tissue only
+siam-pred -i INPUT -m 4 --lowres             # tissue only, at 1mm (only the low res model), same output names
+siam-pred -i INPUT -m 4 --lowres -n 1        # very light version : first fold of the low res model only (ex: brain mask)
+```
+- `-r` : comma separated list of region names: CSF, GM_AssN (GM sub-regions from AssemblyNet), GM_allen, WM, Cereb, deep_nuclei, Thal, Head, Skull, Lesion
+  (an unknown name prints the list of available regions)
+- `-n N` : only the first N folds of each model are used (and downloaded)
+- the list of the repo files is cached in `siam_model_v04/hf_repo_files.txt` : once the files are downloaded, no
+  internet connection is needed. Delete this file to see new models added on hugging face.
+
+To download in advance (shared install with `SIAM_MODEL_DIR`), the same options work with
+`python SIAMpred/download_model_weights.py -m 4 -r CSF,GM_allen,WM -n 1`
+
 ### More options:
 
 **NO Interpolation**: Use `-voxelsize 0.75`  for inputs with isotropic resolution in the range [0.6 1] mm. Adding this option
@@ -101,7 +121,7 @@ The same `Dockerfile` builds a GPU or a CPU image (the CPU one is much smaller):
 
 ### Run
 The model weights are not in the image: they are downloaded at the first run into `/models`
-(~5 GB for the default model, ~15 GB for `-m 4`). Mount a host folder there so they are kept between runs:
+(~5 GB for the default model, up to ~20 GB for `-m 4`, less with `-r`, `-n` or `--lowres`). Mount a host folder there so they are kept between runs:
    ```bash
    # GPU (needs the NVIDIA container toolkit)
    docker run --rm --gpus all --shm-size=8g -u $(id -u):$(id -g) \

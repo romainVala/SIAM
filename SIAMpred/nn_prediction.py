@@ -720,7 +720,8 @@ def nn_predict(
         device: torch.device = torch.device('cuda'),
         num_model: int = 1,
         nb_fold: int = 0,
-        region_regex: str = '.*',
+        regions='all',
+        lowres: bool = False,
         voxel_size=0,
         model_spacing_mode='matching',
         verbose: bool = False,
@@ -730,6 +731,9 @@ def nn_predict(
         do_merge_regions=False,
 ):
     """
+    regions : list of region names (ex ['CSF', 'GM_allen', 'WM']), 'all' : all regions, [] : no region
+    lowres  : (model 4) only the low res (1mm) tissue model, same output names
+    nb_fold : only the first nb_fold folds of each model (0 : all), only those are downloaded
     voxel_size :
         0  : spacing from the nifti header
         >0 : forced isotropic spacing, for all models
@@ -744,7 +748,7 @@ def nn_predict(
         for the final tissue model and the region models at the same resolution
         (not the cascade low res stage)
     """
-    folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, region_regex,nb_fold)
+    folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, regions, nb_fold, lowres=lowres)
     if not input_file_or_folder.startswith('/'):
         input_file_or_folder = join(os.path.curdir, input_file_or_folder)
 
@@ -836,7 +840,7 @@ def nn_predict(
         _convert_proba_to_nifti(output_files)
 
     if do_merge_regions:
-        regroup_regions(input_file_or_folder, output_file_or_folder, num_model, region_regex=region_regex)
+        regroup_regions(input_file_or_folder, output_file_or_folder, num_model, regions=regions)
 
     if io_files.input_is_file:  # otherwise keep the json files in the output folder
         _cleanup_json_files(output_files, out_prefix)
@@ -846,9 +850,11 @@ def regroup_regions(
         input_file_or_folder: str,
         output_file_or_folder: str,
         num_model: int = 1,
-        region_regex: str = '.*',
+        regions='all',
 ):
-    folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, region_regex)
+    # download=False : only the output prefix and the model type are needed
+    folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, regions,
+                                                                                     download=False)
 
     model_type = _get_model_type(folder_with_parameter_files)
     print(f" model {num_model} type: {model_type})")
