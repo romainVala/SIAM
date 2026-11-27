@@ -56,7 +56,11 @@ def main():
     parser.add_argument('--save_proba', action='store_true', required=False,
                         help="add this flag, to also save 4D model output (probabilities per class) ")
     parser.add_argument('--regroup_regions', action='store_true', required=False,
-                        help="add this flag, with -i -o -m options used at prediction to do posprocessing region grouping and remapping")
+                        help="add this flag to regroup the tissue and sub-region predictions into one label map "
+                             "(All_lab_AllenAssn_*) at the end of the prediction (already existing predictions are "
+                             "not recomputed, so it can be rerun with the same -i -o -m options to only regroup). "
+                             "Tissues without sub-region prediction are set to the first final label of their region : "
+                             "CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353")
 
     parser.add_argument('-voxelsize', default=0, type=float, required=False,
                         help=" float default 0. Important for too small head size (compare to adult ) "
@@ -103,26 +107,20 @@ def main():
         os.environ['nnUNet_def_n_proc'] = str(nb_cpu)
         print(f'cpu prediction with {nb_cpu} threads')
     # I put the import here so the default_num_processes set by nnunet does use the env set done here
-    from SIAMpred.nn_prediction import nn_predict,regroup_regions
+    from SIAMpred.nn_prediction import nn_predict
 
-    if args.regroup_regions:
-        regroup_regions(
-            args.input, args.output,
-            num_model=args.model,
-            region_regex=args.region,
-        )
-    else:
-        nn_predict(args.input,args.output,
-                   device=torch.device(device_arg),
-                   num_model = args.model,
-                   nb_fold = args.nb_fold,
-                   region_regex = args.region,
-                   verbose=args.verbose,
-                   voxel_size=args.voxelsize,
-                   num_process=args.nbworker,
-                   save_proba = args.save_proba,
-                   save_highres = args.HR
-                   )
+    nn_predict(args.input,args.output,
+               device=torch.device(device_arg),
+               num_model = args.model,
+               nb_fold = args.nb_fold,
+               region_regex = args.region,
+               verbose=args.verbose,
+               voxel_size=args.voxelsize,
+               num_process=args.nbworker,
+               save_proba = args.save_proba,
+               save_highres = args.HR,
+               do_merge_regions = args.regroup_regions,
+               )
 
 
 if __name__ == '__main__':

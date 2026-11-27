@@ -739,6 +739,9 @@ def nn_predict(
         'reference' : image declared at the reference spacing, then resampled by nnUNet
                       (consistent scaling for all models, as the cascade low res stage)
         'matching'  : true header spacing (only models at the reference resolution are forced)
+    do_merge_regions :
+        if True (option --regroup_regions), regroup_regions is run at the end of the prediction
+        (only for models with sub-regions)
     save_highres :
         also save the predictions at the resolution of the final tissue model (prefix r05_, r075_ ...)
         for the final tissue model and the region models at the same resolution
@@ -796,6 +799,9 @@ def nn_predict(
         _get_num_processes(num_process, len(output_files), device)
     print(f'num process {num_processes_preprocessing} / {num_processes_segmentation_export}  (preproc/export)')
 
+    # no sub-regions : nothing to regroup
+    do_merge_regions = do_merge_regions and model_type in ('subregion', 'cascade_subregion')
+
     # ---- prediction
     if model_type == 'simple':
         _run_prediction(predictor, folder_with_parameter_files, existing_fold,
@@ -829,7 +835,6 @@ def nn_predict(
             tissue_seg_files = output_files_first_stage if model_type == 'subregion' else output_files
             _predict_subregions(predictor, region_models, region_folds, input_files, tissue_seg_files, dirout1,
                                 num_processes_preprocessing, num_processes_segmentation_export,out_prefix)
-            do_merge_regions = True
 
     # ---- post-processing
     if save_proba:
@@ -861,6 +866,13 @@ def regroup_regions(
         num_model: int = 1,
         region_regex: str = '.*',
 ):
+    """
+    Merge the tissue prediction and the sub-region predictions into one label map
+    (All_lab_AllenAssn_*, labels of vascular_All_label_remaps.csv), plus the lobe maps.
+    Tissues without sub-region prediction (region not selected with --region, or not predicted) keep
+    their tissue extent and are set to the first final label of their region (fixed values) :
+        CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353
+    """
     folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, region_regex)
 
     model_type = _get_model_type(folder_with_parameter_files)
