@@ -4,7 +4,7 @@
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 > **SIAM v4 is there** (`-m 4`): tissue segmentation at 0.5 mm plus sub-region models (GM parcellations, WM, deep nuclei, thalamus, head, skull, lesion ...).
-> It is available now and will soon become the default model. See [Model 4](#model-4-v04-tissue--regions--choose-what-to-download).
+> It is available now and will soon become the default model. See *How to use it* below.
 
 SIAM : **Segment It All Model** a head tissue segmentation model designed to be robust to contrast, resolution, and **pathology**.
 It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
@@ -17,7 +17,7 @@ The current version performs **tissue segmentation**, at 0.75 mm
 
 - **Model 3** (default or -m 0), extends siam's v2 robustness toward anatomical **anomalies**, which are segmented as an extra [Label](labels.json).  
 
-- **Model 4** (-m 4, soon the default) : a cascade tissue model (1 mm then 0.5 mm) followed by sub-region models, see [below](#model-4-v04-tissue--regions--choose-what-to-download).
+- **Model 4** (-m 4, soon the default) : a cascade tissue model (1 mm then 0.5 mm) followed by sub-region models, see *How to use it* below.
 
 If usefull, please cite (and may be add a star here)
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
@@ -26,8 +26,10 @@ If usefull, please cite (and may be add a star here)
 
 ![SIAM](https://github.com/user-attachments/assets/ef94239e-60fe-463c-94f3-88b85fced7d4)
 
+<details>
+<summary><h2>Installation</h2></summary>
 
-## Local Installation 
+### Local installation
 
 Note that you need to have a python3 installation for SIAM to work. 
 pip version > 22 and setuptool > 61
@@ -47,10 +49,49 @@ pip version > 22 and setuptool > 61
    run an inference. If the installation is for multiple user, setup the environement variable `SIAM_MODEL_DIR` 
    and run `python /instal_dir/SIAMpred/download_model_weights.py`. Then you only need to setup ` export SIAM_MODEL_DIR` before running the main command `siam-pred`
 
+### Docker or Singularity
 
+#### Build the image
+The same `Dockerfile` builds a GPU or a CPU image (the CPU one is much smaller):
+   ```bash
+   docker build -t siam:gpu .                                  # GPU, CUDA 12.6 (Pascal to Hopper cards), ~7.5 GB
+   docker build --build-arg TORCH_VARIANT=cu128 -t siam:gpu .  # GPU, for recent cards (Blackwell, RTX 50xx)
+   docker build --build-arg TORCH_VARIANT=cpu -t siam:cpu .    # CPU only, ~1.6 GB
+   ```
 
-## How to use it
+#### Run
+The model weights are not in the image: they are downloaded at the first run into `/models`
+(~5 GB for the default model, up to ~20 GB for `-m 4`, less with `-r`, `-n` or `--lowres`). Mount a host folder there so they are kept between runs:
+   ```bash
+   # GPU (needs the NVIDIA container toolkit)
+   docker run --rm --gpus all --shm-size=8g -u $(id -u):$(id -g) \
+       -v ~/siam_params:/models -v $PWD:/data siam:gpu -i /data/my_image.nii.gz
+   # CPU
+   docker run --rm --shm-size=8g -u $(id -u):$(id -g) \
+       -v ~/siam_params:/models -v $PWD:/data siam:cpu -i /data/my_image.nii.gz -device cpu
+   ```
+   `-u $(id -u):$(id -g)` makes the output files belong to you instead of root.
 
+#### Singularity / Apptainer
+   ```bash
+   singularity build siam.sif docker-daemon://siam:gpu
+   singularity exec --nv -B ~/siam_params:/models -B $PWD:/data siam.sif siam-pred -i /data/my_image.nii.gz
+   ```
+   With limited disk space on $HOME or /tmp, set `SINGULARITY_TMPDIR` and `SINGULARITY_CACHEDIR` to a location with enough space.
+
+### Apple Silicon (Metal / MPS)
+
+To be tested:
+```bash
+siam-pred -i INPUT_FILENAME -device mps -nbworker 1
+```
+
+Alternatively, you can try [MedMLX](https://medmlx.org/models/siam/) who reimplement the model's inference inside their tool.
+
+</details>
+
+<details>
+<summary><h2>How to use it</h2></summary>
 
 ```bash
 siam-pred -i INPUT_FILENAME 
@@ -98,7 +139,7 @@ siam-pred -i INPUT -m 4 --lowres -n 1        # very light version : first fold o
 To download in advance (shared install with `SIAM_MODEL_DIR`), the same options work with
 `python SIAMpred/download_model_weights.py -m 4 -r CSF,GM_allen,WM -n 1`
 
-### More options:
+### More options
 
 ### Voxel size (`-voxelsize`)
 
@@ -115,8 +156,6 @@ Note: the prediction always reorients the image to canonical (RAS) and resamples
 
 **Warning**: the models were trained with a scaling factor in the range [0.7 1.3]. Changing the voxel size beyond
 (real voxel size / forced voxel size outside this range) will probably start failing.
-
-Use `-nbworker 1` if you run with memory issues. This reduces the number of worker processes reading/preprocessing and writing the cases (each one holds a whole case in RAM, default is 4; on cpu at most 2 workers are used)
  
 To summarize all inputs parameters, refer to the help functionality:
 
@@ -124,71 +163,23 @@ To summarize all inputs parameters, refer to the help functionality:
 siam-pred -h
 ```
 
-## Docker or Singularity
+</details>
 
-### Build the image
-The same `Dockerfile` builds a GPU or a CPU image (the CPU one is much smaller):
-   ```bash
-   docker build -t siam:gpu .                                  # GPU, CUDA 12.6 (Pascal to Hopper cards), ~7.5 GB
-   docker build --build-arg TORCH_VARIANT=cu128 -t siam:gpu .  # GPU, for recent cards (Blackwell, RTX 50xx)
-   docker build --build-arg TORCH_VARIANT=cpu -t siam:cpu .    # CPU only, ~1.6 GB
-   ```
+<details>
+<summary><h2>Memory needs</h2></summary>
 
-### Run
-The model weights are not in the image: they are downloaded at the first run into `/models`
-(~5 GB for the default model, up to ~20 GB for `-m 4`, less with `-r`, `-n` or `--lowres`). Mount a host folder there so they are kept between runs:
-   ```bash
-   # GPU (needs the NVIDIA container toolkit)
-   docker run --rm --gpus all --shm-size=8g -u $(id -u):$(id -g) \
-       -v ~/siam_params:/models -v $PWD:/data siam:gpu -i /data/my_image.nii.gz
-   # CPU
-   docker run --rm --shm-size=8g -u $(id -u):$(id -g) \
-       -v ~/siam_params:/models -v $PWD:/data siam:cpu -i /data/my_image.nii.gz -device cpu
-   ```
-   `-u $(id -u):$(id -g)` makes the output files belong to you instead of root.
+Execution time and memory usage depend on the input Field Of View (FOV), not much on the input resolution
+(the image is resampled to the model resolution). Values below are for a large FOV covering the neck (166x240x256 mm³).
 
-### Singularity / Apptainer
-   ```bash
-   singularity build siam.sif docker-daemon://siam:gpu
-   singularity exec --nv -B ~/siam_params:/models -B $PWD:/data siam.sif siam-pred -i /data/my_image.nii.gz
-   ```
-   With limited disk space on $HOME or /tmp, set `SINGULARITY_TMPDIR` and `SINGULARITY_CACHEDIR` to a location with enough space.
+| | model 3 (`-m 0`) | model 4 (`-m 4`) |
+|---|---|---|
+| GPU | > 12 GB of GPU memory | to be measured |
+| CPU, `-nbworker 8` | ~25 min, ~20 GB of RAM | to be measured |
+| CPU, `-nbworker 1` | ~2h20, ~17 GB of RAM | to be measured |
 
-## Apple Silicon (Metal / MPS)
+Use `-nbworker 1` (or 2) if you run into memory issues: each worker holds a whole case in RAM.
 
-On Apple Silicon (M1–M4) the model can run on the integrated GPU via PyTorch's
-Metal backend. Either request it explicitly:
-
-```bash
-siam-pred -i INPUT_FILENAME -device mps -nbworker 1
-```
-
-or just leave `-device cuda` as-is: when CUDA isn't available, SIAM now falls
-back to MPS automatically (and only to CPU if MPS is also unavailable). A few
-3D ops aren't implemented on Metal yet; `PYTORCH_ENABLE_MPS_FALLBACK=1` is
-set automatically so those transparently run on CPU.
-
-Note that nnU-Net's sliding-window inference moves tiles between device and
-host on non-CUDA backends, so MPS is faster than CPU but not as fast as CUDA.
-On a 48 GB unified-memory machine, use `-nbworker 1` or `2` to avoid OOM
-kills from parallel worker processes.
-
-Atlternatively, you can try [MedMLX](https://medmlx.org/models/siam/) who reimplement the model's inference inside their tool.
-
-## Memory issues
-
-Running with GPU requires more than 12 G on the GPU card
-
-Execution time, and Memory usage will depend on the input image Field Of View (FOV). 
-The input resolution do not matter too much since it is resliced to 0.75 mm resolution. 
-So only the FOV will change the total datasize that will be feed into the network. 
-
-With a large FOV, covering the nec : 166x240x256 mm^3, 
-
-running with  `-device cpu -nbthread 8` took ~ 25 mn (seems to take ~ 20G of RAM)
-
-running with  `-device cpu -nbthread 1` took ~ 2h20  (but sill ~17 G of RAM ... not sure why)
-
+</details>
 
 ## Thanks
 We thank the [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) team for providing the training framework,
