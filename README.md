@@ -3,6 +3,9 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
+> **SIAM v4 is there** (`-m 4`): tissue segmentation at 0.5 mm plus sub-region models (GM parcellations, WM, deep nuclei, thalamus, head, skull, lesion ...).
+> It is available now and will soon become the default model. See [Model 4](#model-4-v04-tissue--regions--choose-what-to-download).
+
 SIAM : **Segment It All Model** a head tissue segmentation model designed to be robust to contrast, resolution, and **pathology**.
 It can process any 3D human head volume (T1, T2, FLAIR, etc., and even CT).
 
@@ -12,7 +15,9 @@ The current version performs **tissue segmentation**, at 0.75 mm
 
 - **Model 2** (-m 2) is described [here](https://arxiv.org/abs/2605.02737), trained from 6 high-quality templates it shows great performance in healthy brain for tissue segmentation (12 brain tissue + head\/skull\/dura matter\/vessel)
 
-- **Model 3** (defautl or -m 0), extends siam's v2 robustness toward anatomical **anomalies**, which are segmented as an extra [Label](labels.json).  
+- **Model 3** (default or -m 0), extends siam's v2 robustness toward anatomical **anomalies**, which are segmented as an extra [Label](labels.json).  
+
+- **Model 4** (-m 4, soon the default) : a cascade tissue model (1 mm then 0.5 mm) followed by sub-region models, see [below](#model-4-v04-tissue--regions--choose-what-to-download).
 
 If usefull, please cite (and may be add a star here)
 > Valabregue, R., Khemir, I., Bardinet, E., Rousseau, F., Auzias, G. & Dorent R. (2026).
@@ -55,7 +60,7 @@ INPUT_FILENAME must be a nifti file containing 3D volume data. 4D image sequence
 
 
 ```bash
-siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX -m 3
+siam-pred -i INPUT_FOLDER -o OUTPUT_PREFIX -m 4
 ```
 
 The above command will look for all nifti files in the INPUT_FOLDER
@@ -63,7 +68,10 @@ and save the predictions in a sub-folder containing the OUTPUT_PREFIX name.
 if `-o` is not specify, result are store in the same folder, with a prefix
 if `-o` is an absolute path (ex: `-o /data/siam_out`), it is used as the output folder (created if needed)
 and the output files keep the default model prefix
--m model number (default 3, int within [1 2 3] )
+-m model number (default 0 = model 3, possible values 0, 1, 2, 4)
+
+Already existing outputs are not recomputed: a model is skipped (not even loaded) when all its outputs exist,
+so a command can be rerun safely, for instance to add a region or to only regroup the labels.
 
 ### Model 4 (v0.4, tissue + regions) : choose what to download
 The v0.4 weights are stored on [hugging face](https://huggingface.co/RomainValabregue/siam-model-v04) as separate
@@ -82,26 +90,59 @@ siam-pred -i INPUT -m 4 --lowres -n 1        # very light version : first fold o
 - the list of the repo files is cached in `siam_model_v04/hf_repo_files.txt` : once the files are downloaded, no
   internet connection is needed. Delete this file to see new models added on hugging face.
 
+- `--regroup_regions` : regroups the tissue and the sub-region predictions into one label map (`All_lab_AllenAssn_*`)
+  at the end of the prediction. The labels are fixed, whatever the `-r` selection: a tissue without sub-region prediction
+  gets the first final label of its region (CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353).
+  Since existing predictions are not recomputed, you can rerun the same command with `--regroup_regions` to only do the regrouping.
+
 To download in advance (shared install with `SIAM_MODEL_DIR`), the same options work with
 `python SIAMpred/download_model_weights.py -m 4 -r CSF,GM_allen,WM -n 1`
 
 ### More options:
 
-**NO Interpolation**: Use `-voxelsize 0.75`  for inputs with isotropic resolution in the range [0.6 1] mm. Adding this option
-will avoid the standard process which consist of : 1) reslice input data to 0.75 mm (as it was the choosen training resolution)
-2) interpolate back the predicted labels to the original input resolution. (Since we have to use nearest neighbor this will 
-induced a loss of smalll structures)
-Removing interpolation is important for small vessel, but also for GM ... it worth the try ...
+### Voxel size and interpolation (`-voxelsize`)
 
-For very small baby brain, you need to scale the volume up, for the model to work. 
-You can achieve it, without resampling,  by changing nifti header voxel size.
-This will be done on the fly when using the `-voxelsize x.x` where `x.x` is a float for the
-new (fake) voxel size. Typically for newborn brain we multiply the voxel size by 1.4, in order to get a 
-Total Intracranial Volume similar to an adult brain. The prediction result is then converted back to the
-original resolution
-Only use if you have near isotropic resolution
+Each model works at a fixed resolution (its training voxel size):
 
-Use `-nbthread 1` if you run with memory issues. This will reduce the number of thread for processing your input (default is 4) 
+| model | resolution |
+|---|---|
+| `-m 0` (v3), `-m 2` | 0.75 mm |
+| `-m 4` tissue, 1st stage of the cascade (and `--lowres`) | 1 mm |
+| `-m 4` tissue, 2nd stage of the cascade | 0.5 mm |
+| `-m 4` regions CSF, Head, deep_nuclei, Lesion | 0.5 mm |
+| `-m 4` regions GM_allen, GM_AssN, WM, Cereb, Thal, Skull | 1 mm |
+
+**Default (`-voxelsize 0`)**: the voxel size is read from the nifti header. The input is resampled to the model
+resolution, and the predicted labels are interpolated back to the input grid. This last step uses nearest neighbour,
+which can lose small structures (small vessels, thin GM ...). This is the safe choice for any input, including anisotropic ones.
+
+**No interpolation**: the `-voxelsize` option changes **only the nifti header** voxel size (no reslicing): this is
+equivalent to a zoom of the head. When the forced value equals the model resolution, the model sees the input voxels as they are:
+no resampling before the network, and the labels come out directly on the input grid (no nearest neighbour interpolation back).
+Results are always written at the original resolution and orientation.
+This is worth trying for small vessels, and also for GM. Only use it with (nearly) isotropic inputs, since the forced voxel size is isotropic.
+
+- `-voxelsize x.x` (x.x > 0) : the header voxel size is set to x.x mm (isotropic) for **all** the models of the pipeline.
+  - model 3 (`-m 0`): `-voxelsize 0.75` for inputs with isotropic resolution in the range [0.6 1] mm (no interpolation at all)
+  - model 4: `-voxelsize 0.5` for inputs close to 0.5 mm: no interpolation for the 0.5 mm models, the 1 mm models still
+    resample the (zoomed) image. With a 0.8 mm input, the head would look 0.5/0.8 = 0.62 times smaller: too much, use the negative value below
+- `-voxelsize -1` (any negative value) : the voxel size is set to the **finest model resolution of the pipeline**
+  (0.5 mm for `-m 4`, 1 mm for `-m 4 --lowres`, 0.75 mm for `-m 0`), but only for the models working at that resolution.
+  The other models (for `-m 4`: the 1 mm cascade first stage and the 1 mm region models) use the true header voxel size
+  and the standard resampling. So for `-m 4`, the 0.5 mm tissue and region models run without interpolation, while the 1 mm models see the real head size.
+
+Keep in mind that the zoom changes the apparent head size: the further the input resolution is from the forced one, the more the head
+looks smaller (or bigger) than in the training data, and the model is only robust to a moderate scaling.
+
+**Small heads (babies)**: for very small brains, the volume needs to be scaled up for the model to work. Use `-voxelsize x.x`
+with a value larger than the true voxel size: typically, for newborn brains, multiply the voxel size by 1.4 to get a
+Total Intracranial Volume similar to an adult brain. The prediction is converted back to the original resolution.
+
+**High resolution output (`--HR`)**: also saves the segmentation at the resolution of the final tissue model
+(prefix `r05_` for `-m 4`, `r075_` for 0.75 mm), for the tissue model and the region models at the same resolution,
+without interpolation back to the input grid.
+
+Use `-nbworker 1` if you run with memory issues. This reduces the number of worker processes reading/preprocessing and writing the cases (each one holds a whole case in RAM, default is 4; on cpu at most 2 workers are used)
  
 To summarize all inputs parameters, refer to the help functionality:
 
@@ -145,7 +186,7 @@ On Apple Silicon (M1–M4) the model can run on the integrated GPU via PyTorch's
 Metal backend. Either request it explicitly:
 
 ```bash
-siam-pred -i INPUT_FILENAME -device mps -nbthread 1
+siam-pred -i INPUT_FILENAME -device mps -nbworker 1
 ```
 
 or just leave `-device cuda` as-is: when CUDA isn't available, SIAM now falls
@@ -155,7 +196,7 @@ set automatically so those transparently run on CPU.
 
 Note that nnU-Net's sliding-window inference moves tiles between device and
 host on non-CUDA backends, so MPS is faster than CPU but not as fast as CUDA.
-On a 48 GB unified-memory machine, use `-nbthread 1` or `2` to avoid OOM
+On a 48 GB unified-memory machine, use `-nbworker 1` or `2` to avoid OOM
 kills from parallel worker processes.
 
 Atlternatively, you can try [MedMLX](https://medmlx.org/models/siam/) who reimplement the model's inference inside their tool.
