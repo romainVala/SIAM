@@ -50,10 +50,10 @@ def main():
 
     parser.add_argument('-r', '--region', help='Optional (model 4): comma separated list of the region models to run '
                                                '(only those are downloaded), ex: -r CSF,GM_allen,WM '
-                                               'default is all regions, use -r none for the tissue only. '
+                                               'default is all, use -r none for the tissue only. '
                                                'An unknown name prints the list of the available regions '
                                                '(note the Lesion region, to add Lesion detection)'
-                        ,default=None, type=str, required=False)
+                        ,default='all', type=str, required=False)
     parser.add_argument('--lowres', action='store_true', required=False,
                         help="model 4 only : only the low resolution (1mm) tissue prediction, no region "
                              "(only the low res model is downloaded). Same output names as the complete prediction. "

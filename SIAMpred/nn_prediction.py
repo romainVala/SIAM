@@ -720,7 +720,7 @@ def nn_predict(
         device: torch.device = torch.device('cuda'),
         num_model: int = 1,
         nb_fold: int = 0,
-        regions=None,
+        regions='all',
         lowres: bool = False,
         voxel_size=0,
         model_spacing_mode='matching',
@@ -731,7 +731,7 @@ def nn_predict(
         do_merge_regions=False,
 ):
     """
-    regions : list of region names (ex ['CSF', 'GM_allen', 'WM']), None : all regions, [] : no region
+    regions : list of region names (ex ['CSF', 'GM_allen', 'WM']), 'all' : all regions, [] : no region
     lowres  : (model 4) only the low res (1mm) tissue model, same output names
     nb_fold : only the first nb_fold folds of each model (0 : all), only those are downloaded
     voxel_size :
@@ -850,7 +850,7 @@ def regroup_regions(
         input_file_or_folder: str,
         output_file_or_folder: str,
         num_model: int = 1,
-        regions=None,
+        regions='all',
 ):
     # download=False : only the output prefix and the model type are needed
     folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, regions,

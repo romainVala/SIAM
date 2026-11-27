@@ -13,7 +13,7 @@ if __name__ == "__main__":
                         ,default=0, type=int, required=False)
     parser.add_argument('-r', '--region', help='model 4: comma separated list of regions, ex: -r CSF,GM_allen,WM '
                                                '(default all, none for the tissue only)',
-                        default=None, type=str, required=False)
+                        default='all', type=str, required=False)
     parser.add_argument('-n', '--nb_fold', help='model 4: only the first n folds of each model (default 0 : all)',
                         default=0, type=int, required=False)
     parser.add_argument('--lowres', action='store_true', required=False,

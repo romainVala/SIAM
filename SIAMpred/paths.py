@@ -88,16 +88,16 @@ REPO_LISTING_FILE = 'hf_repo_files.txt'  # cached listing of the repo files (del
 
 
 def parse_region_list(region_arg):
-    """-r option : 'CSF,GM_allen,WM' -> ['CSF', 'GM_allen', 'WM'] ; None / 'all' -> None (all) ; 'none' -> []"""
-    if region_arg is None:
-        return None
+    """-r option : 'CSF,GM_allen,WM' -> ['CSF', 'GM_allen', 'WM'] ; 'all' -> 'all' (all regions) ; 'none' -> []"""
+    if region_arg is None or (isinstance(region_arg, str) and region_arg.strip().lower() == 'all'):
+        return 'all'
     if isinstance(region_arg, (list, tuple)):
         names = [str(r).strip() for r in region_arg]
     else:
         names = [r.strip() for r in region_arg.split(',')]
     names = [r for r in names if r]
     if len(names) == 0 or [n.lower() for n in names] == ['all']:
-        return None
+        return 'all'
     if [n.lower() for n in names] == ['none']:
         return []
     return names
@@ -105,7 +105,7 @@ def parse_region_list(region_arg):
 
 def region_list_to_regex(regions):
     """for the local (non hugging face) models, still selected with a regex on the dataset folder names"""
-    if regions is None:
+    if regions == 'all':
         return '.*'
     if len(regions) == 0:
         return '(?!)'  # matches nothing
@@ -176,9 +176,9 @@ def download_hf_files(repo_id, files, local_root):
         hf_hub_download(repo_id, f, local_dir=local_root)
 
 
-def get_v04_model_folders(siam_model_dir, regions=None, nb_fold=0, lowres=False, download=True):
+def get_v04_model_folders(siam_model_dir, regions='all', nb_fold=0, lowres=False, download=True):
     """
-    regions : list of region names (None : all regions, [] : no region)
+    regions : list of region names ('all' : all regions, [] : no region)
     lowres  : only the low res (1mm) tissue model, no region
     nb_fold : only the first nb_fold folds of each model (0 : all)
     Only the needed files are downloaded.
@@ -187,7 +187,7 @@ def get_v04_model_folders(siam_model_dir, regions=None, nb_fold=0, lowres=False,
     repo_files = list_hf_repo_files(HF_REPO_V04, local_root, download=download)
 
     if lowres:
-        if regions:
+        if regions != 'all' and len(regions) > 0:
             print(f'WARNING --lowres : tissue only, the regions {regions} are ignored')
         tissue_models, region_models = [V04_LOWRES], []
     else:
@@ -196,7 +196,7 @@ def get_v04_model_folders(siam_model_dir, regions=None, nb_fold=0, lowres=False,
         region_ds = sorted({f.split('/')[1] for f in repo_files
                             if f.startswith('regions/') and f.split('/')[2:3] == [V04_REGION_TRAINER]})
         available = {region_name_from_dataset(ds): ds for ds in region_ds}
-        if regions is None:
+        if regions == 'all':
             selected = region_ds
         else:
             lower = {k.lower(): v for k, v in available.items()}
@@ -217,14 +217,14 @@ def get_v04_model_folders(siam_model_dir, regions=None, nb_fold=0, lowres=False,
 
     tissue = [os.path.join(local_root, m) for m in tissue_models]
     tissue = tissue[0] if lowres else tissue
-    if lowres or (regions is not None and len(region_models) == 0):
+    if lowres or (regions != 'all' and len(region_models) == 0):
         return tissue  # 'simple' (low res) or 'cascade' (no region)
     return [tissue, [os.path.join(local_root, m) for m in region_models]]
 
 
-def get_model_path_and_fold(num_model: int, regions=None, nb_fold=0, lowres=False, download=True):
+def get_model_path_and_fold(num_model: int, regions='all', nb_fold=0, lowres=False, download=True):
     """
-    regions : list of region names (None : all)
+    regions : list of region names ('all' : all regions, [] : no region)
     lowres  : (model 4 only) only the low res tissue model
     download: if False, nothing is downloaded (used by regroup_regions)
     """
