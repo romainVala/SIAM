@@ -11,10 +11,13 @@ The folder must have the layout expected by SIAMpred/paths.py :
     Dataset782_Ano4DS_vAllen_nolesP2/<trainer>__3d_cascade_fullres/...
     regions/<DatasetXXX_name>/nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres/...
 Only the json files and the checkpoint_final files are uploaded (no validation, logs, checkpoint_latest ...).
+A small config.json is also written at the root of the repo : hugging face only counts the downloads
+of root files like config.json (siam-pred asks for it when it downloads the low res tissue model), not of the files in sub folders.
 Use --delete-tar to also remove the old siam_model_v04.tar.gz from the repo
 (siam-pred versions before this change download that archive).
 """
 import argparse
+import json
 from huggingface_hub import HfApi
 
 parser = argparse.ArgumentParser()
@@ -29,6 +32,13 @@ api.upload_large_folder(
     allow_patterns=['*.json', '*/fold_*/checkpoint_final.*'],
     ignore_patterns=['hf_repo_files.txt', '.cache/*', '*/validation/*'],
 )
+# root config.json : the file hugging face uses to count the downloads
+# (siam-pred fetches it only when it downloads the low res tissue model, i.e. once per user)
+config = {'model': 'SIAM', 'version': '0.4', 'framework': 'nnUNetv2',
+          'usage': 'siam-pred -i INPUT -m 4 (only the needed model files are downloaded)',
+          'code': 'https://github.com/romainVala/SIAM'}
+api.upload_file(path_or_fileobj=(json.dumps(config, indent=2) + '\n').encode(), path_in_repo='config.json',
+                repo_id=args.repo, repo_type='model', commit_message='Add root config.json (download counter)')
 files = api.list_repo_files(args.repo)
 print(f'{len(files)} files in {args.repo}')
 if args.delete_tar and 'siam_model_v04.tar.gz' in files:
