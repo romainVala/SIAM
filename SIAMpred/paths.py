@@ -220,7 +220,9 @@ def get_v04_model_folders(siam_model_dir, regions='all', nb_fold=0, lowres=False
             lower.update({a.lower(): available[t] for a, t in REGION_ALIASES.items() if t in available})
             unknown = [r for r in regions if r.lower() not in lower]
             if len(unknown) > 0:
-                raise ValueError(f'Unknown region(s) {unknown}. Available regions are : {",".join(available)}')
+                shown = {t: a for a, t in REGION_ALIASES.items()}  # GM_vascular shown as GM_AssN
+                raise ValueError(f'Unknown region(s) {unknown}. Available regions are : '
+                                 f'{",".join(shown.get(k, k) for k in available)}')
             selected = list(dict.fromkeys(lower[r.lower()] for r in regions))  # no duplicates
         region_models = [f'regions/{ds}/{V04_REGION_TRAINER}' for ds in selected]
 

@@ -50,7 +50,7 @@ def main():
 
     parser.add_argument('-r', '--region', help='Optional (model 4): comma separated list of the region models to run '
                                                '(only those are downloaded), ex: -r CSF,GM_allen,WM '
-                                               'available: CSF,GM_vascular (alias GM_AssN),GM_allen,WM,Cereb,deep_nuclei,Thal,Head,Skull,Lesion '
+                                               'available: CSF,GM_AssN,GM_allen,WM,Cereb,deep_nuclei,Thal,Head,Skull,Lesion '
                                                'default is all, use -r none for the tissue only. '
                                                'An unknown name prints the list of the available regions '
                                                '(note the Lesion region, to add Lesion detection)'
