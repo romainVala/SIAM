@@ -76,7 +76,8 @@ siam-pred -i INPUT -m 4 -r none              # tissue only
 siam-pred -i INPUT -m 4 --lowres             # tissue only, at 1mm (only the low res model), same output names
 siam-pred -i INPUT -m 4 --lowres -n 1        # very light version : first fold of the low res model only (ex: brain mask)
 ```
-- `-r` : comma separated list of region names (an unknown name prints the list of available regions)
+- `-r` : comma separated list of region names: CSF, GM, GM_allen, WM, Cereb, deep_nuclei, Thal, Head, Skull, Lesion
+  (an unknown name prints the list of available regions)
 - `-n N` : only the first N folds of each model are used (and downloaded)
 - the list of the repo files is cached in `siam_model_v04/hf_repo_files.txt` : once the files are downloaded, no
   internet connection is needed. Delete this file to see new models added on hugging face.

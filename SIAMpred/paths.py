@@ -113,9 +113,13 @@ def region_list_to_regex(regions):
 
 
 def region_name_from_dataset(dataset_name):
-    """'Dataset801_GM_allen' or 'Dataset801_reg_GM_allen' -> 'GM_allen'"""
+    """short region name used by -r :
+    'Dataset7824_reg_GM_allen_P4' -> 'GM_allen', 'Dataset7825_reg_GM_vascular_P4' -> 'GM',
+    'Dataset7833_reg_deep_nuclei_vascular_P2' -> 'deep_nuclei', 'Dataset786_Lesion_P2' -> 'Lesion'"""
     name = dataset_name.split('_', 1)[1] if '_' in dataset_name else dataset_name
-    return name.removeprefix('reg_')
+    name = name.removeprefix('reg_')
+    name = re.sub(r'_P\d+$', '', name)  # training version suffix
+    return name.removesuffix('_vascular')  # default labeling (vascular atlas)
 
 
 def _list_local_files(local_root):
