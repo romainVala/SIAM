@@ -43,15 +43,22 @@ def main():
     parser.add_argument('-m', '--model', help='Optional: For local use only : An integer to specify which model '
                                               'use -1 to have version 0.1 model '
                         ,default=0, type=int, required=False)
-    parser.add_argument('-n', '--nb_fold', help='Optional: int between 1 and 4. use 1 to make quick prediction using'
-                                                'only 1 fold. default is 0, it will take all 5 folds  '
+    parser.add_argument('-n', '--nb_fold', help='Optional: int between 1 and 4. use 1 to make quick prediction using '
+                                                'only the first fold of each model (only this fold is downloaded). '
+                                                'default is 0, it will take all 5 folds  '
                         ,default=0, type=int, required=False)
 
-    parser.add_argument('-r', '--region', help='Optional: regular expression to select specific region models'
-                                              'default value is all of course, adapt the exemple to keep what you wish'
-                                               ' --region="(CSF|GM|WM|Cereb|deep|Thal|Head|Skull|Lesion)" '
-                                               'note the Lesion key, to add Lesion detection '
-                        ,default='.*', type=str, required=False)
+    parser.add_argument('-r', '--region', help='Optional (model 4): comma separated list of the region models to run '
+                                               '(only those are downloaded), ex: -r CSF,GM_allen,WM '
+                                               'available: CSF,GM_AssN,GM_allen,WM,Cereb,deep_nuclei,Thal,Head,Skull,Lesion '
+                                               'default is all, use -r none for the tissue only. '
+                                               'An unknown name prints the list of the available regions '
+                                               '(note the Lesion region, to add Lesion detection)'
+                        ,default='all', type=str, required=False)
+    parser.add_argument('--lowres', action='store_true', required=False,
+                        help="model 4 only : only the low resolution (1mm) tissue prediction, no region "
+                             "(only the low res model is downloaded). Same output names as the complete prediction. "
+                             "With -n 1 this is a very light version (ex: for a brain mask)")
 
     parser.add_argument('--save_proba', action='store_true', required=False,
                         help="add this flag, to also save 4D model output (probabilities per class) ")
@@ -108,12 +115,15 @@ def main():
         print(f'cpu prediction with {nb_cpu} threads')
     # I put the import here so the default_num_processes set by nnunet does use the env set done here
     from SIAMpred.nn_prediction import nn_predict
+    from SIAMpred.paths import parse_region_list
+    regions = parse_region_list(args.region)
 
     nn_predict(args.input,args.output,
                device=torch.device(device_arg),
                num_model = args.model,
                nb_fold = args.nb_fold,
-               region_regex = args.region,
+               regions = regions,
+               lowres = args.lowres,
                verbose=args.verbose,
                voxel_size=args.voxelsize,
                num_process=args.nbworker,
