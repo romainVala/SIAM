@@ -743,6 +743,9 @@ def nn_predict(
         'reference' : image declared at the reference spacing, then resampled by nnUNet
                       (consistent scaling for all models, as the cascade low res stage)
         'matching'  : true header spacing (only models at the reference resolution are forced)
+    do_merge_regions :
+        if True (option --regroup_regions), regroup_regions is run at the end of the prediction
+        (only for models with sub-regions)
     save_highres :
         also save the predictions at the resolution of the final tissue model (prefix r05_, r075_ ...)
         for the final tissue model and the region models at the same resolution
@@ -800,6 +803,9 @@ def nn_predict(
         _get_num_processes(num_process, len(output_files), device)
     print(f'num process {num_processes_preprocessing} / {num_processes_segmentation_export}  (preproc/export)')
 
+    # no sub-regions : nothing to regroup
+    do_merge_regions = do_merge_regions and model_type in ('subregion', 'cascade_subregion')
+
     # ---- prediction
     if model_type == 'simple':
         _run_prediction(predictor, folder_with_parameter_files, existing_fold,
@@ -833,7 +839,6 @@ def nn_predict(
             tissue_seg_files = output_files_first_stage if model_type == 'subregion' else output_files
             _predict_subregions(predictor, region_models, region_folds, input_files, tissue_seg_files, dirout1,
                                 num_processes_preprocessing, num_processes_segmentation_export,out_prefix)
-            do_merge_regions = True
 
     # ---- post-processing
     if save_proba:
@@ -846,12 +851,32 @@ def nn_predict(
         _cleanup_json_files(output_files, out_prefix)
 
 
+def _tissue_to_first_final_label(dfv):
+    """
+    tissue name -> first (lowest, non background) final label of this region, from vascular_All csv
+    The region grouping columns are searched in order (first one containing the name wins).
+    """
+    dic = {}
+    for col in ['targetReg_Name', 'tissueRegion_Name', 'tissueSynth_Name', 'Stratified_Tissue_Region', 'Name']:
+        dfc = dfv[dfv.label > 0]
+        for name, val in dfc.groupby(col).label.min().items():
+            dic.setdefault(name, int(val))
+    return dic
+
+
 def regroup_regions(
         input_file_or_folder: str,
         output_file_or_folder: str,
         num_model: int = 1,
         regions='all',
 ):
+    """
+    Merge the tissue prediction and the sub-region predictions into one label map
+    (All_lab_AllenAssn_*, labels of vascular_All_label_remaps.csv), plus the lobe maps.
+    Tissues without sub-region prediction (region not selected with --region, or not predicted) keep
+    their tissue extent and are set to the first final label of their region (fixed values) :
+        CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353
+    """
     # download=False : only the output prefix and the model type are needed
     folder_with_parameter_files, existing_fold, out_prefix = get_model_path_and_fold(num_model, regions,
                                                                                      download=False)
@@ -885,6 +910,7 @@ def regroup_regions(
     dicNaRegLobe = {dfs.Name: dfs.Region for _, dfs in dfa.iterrows()}
     dicNvRegLobe = {dfs.Name: dfs.Lobes_Name for _, dfs in dfv.iterrows() if not pd.isna(dfs.Lobes)}
     dicVasLobe_name2val = {dfs.Lobes_Name: dfs.Lobes for _, dfs in dfv.iterrows() if not pd.isna(dfs.Lobes)}
+    dicTissue2first = _tissue_to_first_final_label(dfv)
 
     for ft in fpreds:
         fn = f'{out_prefix}' + get_parent_path(ft)[1][len(out_prefix):]
@@ -927,7 +953,7 @@ def regroup_regions(
                     ilreg = tmap_reg(tr(ilreg))
 
                 dataremap += ilreg.data.to(torch.int16)
-                dic_lab_tissue.pop(regn)
+                dic_lab_tissue.pop(regn, None)
                 if "GM" in regd:  # GM AssN
                     tmap_reg = tio.RemapLabels({v: dicVasLobe_name2val[dicNvRegLobe[k]] for k, v in dicreg.items()})
                     fo = os.path.join(pred_dir, 'Lobes_GMAssN_' + fn_out)
@@ -941,9 +967,19 @@ def regroup_regions(
                         ilreg.save(fo)
                         print(f"saving{fo}")
 
-        dic_lab_tissue.pop('background')
+        dic_lab_tissue.pop('background', None)
         if len(dic_lab_tissue) == 0:
             print('all region added')
+        else:
+            # tissues without sub-region prediction : their tissue label (ex GM=1) would collide with
+            # the final labels (1 = R_CSF), so they are mapped to the first final label of the region
+            for tissue_name, tissue_val in dic_lab_tissue.items():
+                final_val = dicTissue2first.get(tissue_name)
+                if final_val is None or not isinstance(tissue_val, int):
+                    print(f'WARNING no final label found for tissue {tissue_name}, set to 0')
+                    continue
+                print(f'no sub-region for {tissue_name}: tissue label {tissue_val} -> {final_val}')
+                dataremap[(il.data == tissue_val) & (dataremap == 0)] = final_val
 
         ilall = tio.LabelMap(tensor=dataremap, affine=il.affine)
         ilall.save(fo_all)
