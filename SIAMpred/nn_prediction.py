@@ -842,6 +842,19 @@ def nn_predict(
         _cleanup_json_files(output_files, out_prefix)
 
 
+def _tissue_to_first_final_label(dfv):
+    """
+    tissue name -> first (lowest, non background) final label of this region, from vascular_All csv
+    The region grouping columns are searched in order (first one containing the name wins).
+    """
+    dic = {}
+    for col in ['targetReg_Name', 'tissueRegion_Name', 'tissueSynth_Name', 'Stratified_Tissue_Region', 'Name']:
+        dfc = dfv[dfv.label > 0]
+        for name, val in dfc.groupby(col).label.min().items():
+            dic.setdefault(name, int(val))
+    return dic
+
+
 def regroup_regions(
         input_file_or_folder: str,
         output_file_or_folder: str,
@@ -879,6 +892,7 @@ def regroup_regions(
     dicNaRegLobe = {dfs.Name: dfs.Region for _, dfs in dfa.iterrows()}
     dicNvRegLobe = {dfs.Name: dfs.Lobes_Name for _, dfs in dfv.iterrows() if not pd.isna(dfs.Lobes)}
     dicVasLobe_name2val = {dfs.Lobes_Name: dfs.Lobes for _, dfs in dfv.iterrows() if not pd.isna(dfs.Lobes)}
+    dicTissue2first = _tissue_to_first_final_label(dfv)
 
     for ft in fpreds:
         fn = f'{out_prefix}' + get_parent_path(ft)[1][len(out_prefix):]
@@ -921,7 +935,7 @@ def regroup_regions(
                     ilreg = tmap_reg(tr(ilreg))
 
                 dataremap += ilreg.data.to(torch.int16)
-                dic_lab_tissue.pop(regn)
+                dic_lab_tissue.pop(regn, None)
                 if "GM" in regd:  # GM AssN
                     tmap_reg = tio.RemapLabels({v: dicVasLobe_name2val[dicNvRegLobe[k]] for k, v in dicreg.items()})
                     fo = os.path.join(pred_dir, 'Lobes_GMAssN_' + fn_out)
@@ -935,9 +949,19 @@ def regroup_regions(
                         ilreg.save(fo)
                         print(f"saving{fo}")
 
-        dic_lab_tissue.pop('background')
+        dic_lab_tissue.pop('background', None)
         if len(dic_lab_tissue) == 0:
             print('all region added')
+        else:
+            # tissues without sub-region prediction : their tissue label (ex GM=1) would collide with
+            # the final labels (1 = R_CSF), so they are mapped to the first final label of the region
+            for tissue_name, tissue_val in dic_lab_tissue.items():
+                final_val = dicTissue2first.get(tissue_name)
+                if final_val is None or not isinstance(tissue_val, int):
+                    print(f'WARNING no final label found for tissue {tissue_name}, set to 0')
+                    continue
+                print(f'no sub-region for {tissue_name}: tissue label {tissue_val} -> {final_val}')
+                dataremap[(il.data == tissue_val) & (dataremap == 0)] = final_val
 
         ilall = tio.LabelMap(tensor=dataremap, affine=il.affine)
         ilall.save(fo_all)
