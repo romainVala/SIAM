@@ -85,6 +85,7 @@ V04_LOWRES = 'Dataset782_Ano4DS_vAllen_nolesP2/nnUNetTrainerNoDA__nnUNetResEncUN
 V04_FULLRES = 'Dataset782_Ano4DS_vAllen_nolesP2/nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres'
 V04_REGION_TRAINER = 'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'
 REPO_LISTING_FILE = 'hf_repo_files.txt'  # cached listing of the repo files (delete it to refresh)
+HF_CONFIG_FILE = 'config.json'  # small file at the repo root : hugging face counts the downloads on it
 
 
 def parse_region_list(region_arg):
@@ -140,7 +141,7 @@ def _list_local_files(local_root):
     for dp, dns, fns in os.walk(local_root):
         dns[:] = [d for d in dns if not d.startswith('.')]  # skip .cache (hugging face metadata)
         files += [os.path.relpath(join(dp, f), local_root).replace(os.sep, '/') for f in fns]
-    return [f for f in files if f != REPO_LISTING_FILE]
+    return [f for f in files if f not in (REPO_LISTING_FILE, HF_CONFIG_FILE)]
 
 
 def list_hf_repo_files(repo_id, local_root, download=True):
@@ -151,7 +152,7 @@ def list_hf_repo_files(repo_id, local_root, download=True):
     if isfile(cache):
         with open(cache) as f:
             return [l.strip() for l in f if l.strip()]
-    if download and os.environ.get('HF_HUB_OFFLINE', '0') in ('0', '', 'false', 'False'):
+    if download and not _hf_offline():
         try:
             from huggingface_hub import HfApi
             files = HfApi().list_repo_files(repo_id)
@@ -162,6 +163,30 @@ def list_hf_repo_files(repo_id, local_root, download=True):
         except Exception as e:
             print(f'WARNING cannot list the files of {repo_id} on hugging face ({e}), using the local files only')
     return _list_local_files(local_root)
+
+
+def _hf_offline():
+    return os.environ.get('HF_HUB_OFFLINE', '0') not in ('0', '', 'false', 'False')
+
+
+def fetch_hf_config(repo_id, local_root):
+    """Ask hugging face for the root config.json : for a repo without a known library, hugging face only
+    counts the downloads of root files like config.json (not the model files in sub folders), so this
+    request is what makes the download counter move. Called only when the low res tissue model is
+    downloaded (first use of the model), so one user = one download (region models are not counted).
+    Never fails : no internet / offline mode / missing file -> silently ignored."""
+    if _hf_offline():
+        return
+    try:
+        from huggingface_hub import hf_hub_download
+        from huggingface_hub.utils import disable_progress_bars, enable_progress_bars
+        disable_progress_bars()
+        try:
+            hf_hub_download(repo_id, HF_CONFIG_FILE, local_dir=local_root, etag_timeout=5)
+        finally:
+            enable_progress_bars()
+    except Exception:
+        pass
 
 
 def model_files_to_download(repo_files, model_dir, nb_fold=0):
@@ -233,7 +258,12 @@ def get_v04_model_folders(siam_model_dir, regions='all', nb_fold=0, lowres=False
             if not any('/fold_' in f for f in fm):
                 raise FileNotFoundError(f'no checkpoint found for model {m} in {HF_REPO_V04}')
             to_download += fm
+        # download counter : only when the low res tissue model is downloaded (once per user / model dir)
+        lowres_ckpts = [f for f in model_files_to_download(repo_files, V04_LOWRES, nb_fold) if '/fold_' in f]
+        new_user = any(not isfile(join(local_root, f)) for f in lowres_ckpts)
         download_hf_files(HF_REPO_V04, to_download, local_root)
+        if new_user:
+            fetch_hf_config(HF_REPO_V04, local_root)  # counted as one download by hugging face
 
     tissue = [os.path.join(local_root, m) for m in tissue_models]
     tissue = tissue[0] if lowres else tissue
