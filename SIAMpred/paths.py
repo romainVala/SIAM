@@ -170,9 +170,10 @@ def _hf_offline():
 
 
 def fetch_hf_config(repo_id, local_root):
-    """Ask hugging face for the root config.json at each run : for a repo without a known library,
-    hugging face only counts the downloads of root files like config.json (not the model files in
-    sub folders), so this request is what makes the download counter move.
+    """Ask hugging face for the root config.json : for a repo without a known library, hugging face only
+    counts the downloads of root files like config.json (not the model files in sub folders), so this
+    request is what makes the download counter move. Called only when the low res tissue model is
+    downloaded (first use of the model), so one user = one download (region models are not counted).
     Never fails : no internet / offline mode / missing file -> silently ignored."""
     if _hf_offline():
         return
@@ -257,8 +258,12 @@ def get_v04_model_folders(siam_model_dir, regions='all', nb_fold=0, lowres=False
             if not any('/fold_' in f for f in fm):
                 raise FileNotFoundError(f'no checkpoint found for model {m} in {HF_REPO_V04}')
             to_download += fm
+        # download counter : only when the low res tissue model is downloaded (once per user / model dir)
+        lowres_ckpts = [f for f in model_files_to_download(repo_files, V04_LOWRES, nb_fold) if '/fold_' in f]
+        new_user = any(not isfile(join(local_root, f)) for f in lowres_ckpts)
         download_hf_files(HF_REPO_V04, to_download, local_root)
-        fetch_hf_config(HF_REPO_V04, local_root)  # counted as one download by hugging face
+        if new_user:
+            fetch_hf_config(HF_REPO_V04, local_root)  # counted as one download by hugging face
 
     tissue = [os.path.join(local_root, m) for m in tissue_models]
     tissue = tissue[0] if lowres else tissue
