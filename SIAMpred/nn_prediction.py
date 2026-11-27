@@ -892,7 +892,7 @@ def regroup_regions(
 ):
     """
     Merge the tissue prediction and the sub-region predictions into one label map
-    (All_lab_AllenAssn_*, labels of vascular_All_label_remaps.csv), plus the lobe maps.
+    (All_lab_*, labels of vascular_All_label_remaps.csv), plus the lobe maps.
     Tissues without sub-region prediction (region not selected with --region, or not predicted) keep
     their tissue extent and are set to the first final label of their region (fixed values) :
         CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353
@@ -936,7 +936,7 @@ def regroup_regions(
         fn = f'{out_prefix}' + get_parent_path(ft)[1][len(out_prefix):]
         # name of the merged outputs : 'pred_' is dropped (older prefixes), other prefixes (siamV03_ ...) are kept
         fn_out = fn.removeprefix('pred_')
-        fo_all = os.path.join(pred_dir, 'All_lab_AllenAssn_' + fn_out)
+        fo_all = os.path.join(pred_dir, 'All_lab_' + fn_out)
         if os.path.isfile(fo_all):
             print(f'skiping existing out {fo_all}')
             continue
