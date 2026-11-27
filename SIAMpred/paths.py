@@ -113,13 +113,26 @@ def region_list_to_regex(regions):
 
 
 def region_name_from_dataset(dataset_name):
-    """short region name used by -r :
-    'Dataset7824_reg_GM_allen_P4' -> 'GM_allen', 'Dataset7825_reg_GM_vascular_P4' -> 'GM',
-    'Dataset7833_reg_deep_nuclei_vascular_P2' -> 'deep_nuclei', 'Dataset786_Lesion_P2' -> 'Lesion'"""
+    """'Dataset7824_reg_GM_allen_P4' -> 'GM_allen', 'Dataset786_Lesion_P2' -> 'Lesion'
+    (the '_vascular' suffix is removed in region_names, unless ambiguous : CSF, WM ... but GM_vascular)"""
     name = dataset_name.split('_', 1)[1] if '_' in dataset_name else dataset_name
     name = name.removeprefix('reg_')
-    name = re.sub(r'_P\d+$', '', name)  # training version suffix
-    return name.removesuffix('_vascular')  # default labeling (vascular atlas)
+    return re.sub(r'_P\d+$', '', name)  # training version suffix
+
+
+REGION_ALIASES = {'GM_AssN': 'GM_vascular'}  # GM sub-regions from AssemblyNet
+
+
+def region_names(dataset_names):
+    """{short name: dataset name} : CSF, GM_vascular, GM_allen, WM, Cereb, deep_nuclei, Thal, Head, Skull, Lesion"""
+    names = [region_name_from_dataset(d) for d in dataset_names]
+    out = {}
+    for d, n in zip(dataset_names, names):
+        sn = n.removesuffix('_vascular')
+        # keep '_vascular' if an other model of the same structure exists (GM_vascular / GM_allen)
+        ambiguous = any(o != n and (o == sn or o.startswith(sn + '_')) for o in names)
+        out[n if ambiguous else sn] = d
+    return out
 
 
 def _list_local_files(local_root):
@@ -199,15 +212,16 @@ def get_v04_model_folders(siam_model_dir, regions='all', nb_fold=0, lowres=False
         # region models : regions/<Dataset>/<trainer>/
         region_ds = sorted({f.split('/')[1] for f in repo_files
                             if f.startswith('regions/') and f.split('/')[2:3] == [V04_REGION_TRAINER]})
-        available = {region_name_from_dataset(ds): ds for ds in region_ds}
+        available = region_names(region_ds)
         if regions == 'all':
             selected = region_ds
         else:
             lower = {k.lower(): v for k, v in available.items()}
+            lower.update({a.lower(): available[t] for a, t in REGION_ALIASES.items() if t in available})
             unknown = [r for r in regions if r.lower() not in lower]
             if len(unknown) > 0:
                 raise ValueError(f'Unknown region(s) {unknown}. Available regions are : {",".join(available)}')
-            selected = [lower[r.lower()] for r in regions]
+            selected = list(dict.fromkeys(lower[r.lower()] for r in regions))  # no duplicates
         region_models = [f'regions/{ds}/{V04_REGION_TRAINER}' for ds in selected]
 
     if download:
