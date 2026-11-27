@@ -70,7 +70,7 @@ if `-o` is an absolute path (ex: `-o /data/siam_out`), it is used as the output 
 and the output files keep the default model prefix
 -m model number (default 0 = model 3, possible values 0, 1, 2, 4)
 
-Already existing outputs are not recomputed: a model is skipped (not even loaded) when all its outputs exist,
+Already existing outputs are not recomputed: a model is skipped when all its outputs exist,
 so a command can be rerun safely, for instance to add a region or to only regroup the labels.
 
 ### Model 4 (v0.4, tissue + regions) : choose what to download
@@ -90,7 +90,7 @@ siam-pred -i INPUT -m 4 --lowres -n 1        # very light version : first fold o
 - the list of the repo files is cached in `siam_model_v04/hf_repo_files.txt` : once the files are downloaded, no
   internet connection is needed. Delete this file to see new models added on hugging face.
 
-- `--regroup_regions` : regroups the tissue and the sub-region predictions into one label map (`All_lab_AllenAssn_*`)
+- `--regroup_regions` : regroups the tissue and the sub-region predictions into one label map (`All_lab_*`)
   at the end of the prediction. The labels are fixed, whatever the `-r` selection: a tissue without sub-region prediction
   gets the first final label of its region (CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353).
   Since existing predictions are not recomputed, you can rerun the same command with `--regroup_regions` to only do the regrouping.
@@ -100,47 +100,21 @@ To download in advance (shared install with `SIAM_MODEL_DIR`), the same options 
 
 ### More options:
 
-### Voxel size and interpolation (`-voxelsize`)
+### Voxel size (`-voxelsize`)
 
-Each model works at a fixed resolution (its training voxel size):
+- `-voxelsize 0` (default) : the voxel size is read from the nifti header.
+- `-voxelsize x.x` : the header voxel size is ignored and replaced by x.x mm (isotropic), without reslicing: this is a zoom
+  of the head. Useful for small heads: for newborn brains, multiply the voxel size by ~1.4 to get a Total Intracranial Volume
+  similar to an adult brain. Only use it with (nearly) isotropic inputs.
+- `-voxelsize -1` (model 4 only) : the header voxel size is kept for the low resolution (1 mm) models (no zoom), and set to
+  0.5 mm for the high resolution models, to avoid the resampling (and the nearest neighbour interpolation back of the labels,
+  which can lose small structures). Best for inputs with an isotropic resolution close to 0.5 mm.
 
-| model | resolution |
-|---|---|
-| `-m 0` (v3), `-m 2` | 0.75 mm |
-| `-m 4` tissue, 1st stage of the cascade (and `--lowres`) | 1 mm |
-| `-m 4` tissue, 2nd stage of the cascade | 0.5 mm |
-| `-m 4` regions CSF, Head, deep_nuclei, Lesion | 0.5 mm |
-| `-m 4` regions GM_allen, GM_AssN, WM, Cereb, Thal, Skull | 1 mm |
+Note: the prediction always reorients the image to canonical (RAS) and resamples it to the model resolution
+(0.75 mm for models 2 and 3, 1 mm and 0.5 mm for model 4); the labels are then resampled back to the original grid and orientation.
 
-**Default (`-voxelsize 0`)**: the voxel size is read from the nifti header. The input is resampled to the model
-resolution, and the predicted labels are interpolated back to the input grid. This last step uses nearest neighbour,
-which can lose small structures (small vessels, thin GM ...). This is the safe choice for any input, including anisotropic ones.
-
-**No interpolation**: the `-voxelsize` option changes **only the nifti header** voxel size (no reslicing): this is
-equivalent to a zoom of the head. When the forced value equals the model resolution, the model sees the input voxels as they are:
-no resampling before the network, and the labels come out directly on the input grid (no nearest neighbour interpolation back).
-Results are always written at the original resolution and orientation.
-This is worth trying for small vessels, and also for GM. Only use it with (nearly) isotropic inputs, since the forced voxel size is isotropic.
-
-- `-voxelsize x.x` (x.x > 0) : the header voxel size is set to x.x mm (isotropic) for **all** the models of the pipeline.
-  - model 3 (`-m 0`): `-voxelsize 0.75` for inputs with isotropic resolution in the range [0.6 1] mm (no interpolation at all)
-  - model 4: `-voxelsize 0.5` for inputs close to 0.5 mm: no interpolation for the 0.5 mm models, the 1 mm models still
-    resample the (zoomed) image. With a 0.8 mm input, the head would look 0.5/0.8 = 0.62 times smaller: too much, use the negative value below
-- `-voxelsize -1` (any negative value) : the voxel size is set to the **finest model resolution of the pipeline**
-  (0.5 mm for `-m 4`, 1 mm for `-m 4 --lowres`, 0.75 mm for `-m 0`), but only for the models working at that resolution.
-  The other models (for `-m 4`: the 1 mm cascade first stage and the 1 mm region models) use the true header voxel size
-  and the standard resampling. So for `-m 4`, the 0.5 mm tissue and region models run without interpolation, while the 1 mm models see the real head size.
-
-Keep in mind that the zoom changes the apparent head size: the further the input resolution is from the forced one, the more the head
-looks smaller (or bigger) than in the training data, and the model is only robust to a moderate scaling.
-
-**Small heads (babies)**: for very small brains, the volume needs to be scaled up for the model to work. Use `-voxelsize x.x`
-with a value larger than the true voxel size: typically, for newborn brains, multiply the voxel size by 1.4 to get a
-Total Intracranial Volume similar to an adult brain. The prediction is converted back to the original resolution.
-
-**High resolution output (`--HR`)**: also saves the segmentation at the resolution of the final tissue model
-(prefix `r05_` for `-m 4`, `r075_` for 0.75 mm), for the tissue model and the region models at the same resolution,
-without interpolation back to the input grid.
+**Warning**: the models were trained with a scaling factor in the range [0.7 1.3]. Changing the voxel size beyond
+(real voxel size / forced voxel size outside this range) will probably start failing.
 
 Use `-nbworker 1` if you run with memory issues. This reduces the number of worker processes reading/preprocessing and writing the cases (each one holds a whole case in RAM, default is 4; on cpu at most 2 workers are used)
  

@@ -64,7 +64,7 @@ def main():
                         help="add this flag, to also save 4D model output (probabilities per class) ")
     parser.add_argument('--regroup_regions', action='store_true', required=False,
                         help="add this flag to regroup the tissue and sub-region predictions into one label map "
-                             "(All_lab_AllenAssn_*) at the end of the prediction (already existing predictions are "
+                             "(All_lab_*) at the end of the prediction (already existing predictions are "
                              "not recomputed, so it can be rerun with the same -i -o -m options to only regroup). "
                              "Tissues without sub-region prediction are set to the first final label of their region : "
                              "CSF 1, WM 3, Cereb 5, Head 11, GM 39, Thal 239, deep_nuclei 273, Skull 329, Lesion 353")
