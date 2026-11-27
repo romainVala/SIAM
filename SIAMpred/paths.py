@@ -76,22 +76,166 @@ def get_siam_model_dir():
         model_dir = os.path.join(os.path.expanduser('~'), 'siam_params')
     return model_dir
 
-def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
-    siam_model_dir = get_siam_model_dir()
+# ============================================================================
+# v0.4 model : one file per model / fold on hugging face, only the needed ones are downloaded
+# ============================================================================
+HF_REPO_V04 = 'RomainValabregue/siam-model-v04'
+V04_DIR = 'siam_model_v04'  # local folder (in the siam model dir) = root of the hugging face repo
+V04_LOWRES = 'Dataset782_Ano4DS_vAllen_nolesP2/nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_lowres'
+V04_FULLRES = 'Dataset782_Ano4DS_vAllen_nolesP2/nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres'
+V04_REGION_TRAINER = 'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'
+REPO_LISTING_FILE = 'hf_repo_files.txt'  # cached listing of the repo files (delete it to refresh)
 
-    if num_model==4: #next release region predictions
-        # hugging face link to the tar.gz version of the models (contains the siam_model_v04 folder)
-        DOWNLOAD_URL = 'https://huggingface.co/RomainValabregue/siam-model-v04/resolve/main/siam_model_v04.tar.gz'
-        res_folder = [os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
-                                   'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_lowres'),
-                      os.path.join(siam_model_dir, 'siam_model_v04','Dataset782_Ano4DS_vAllen_nolesP2',
-                                   'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_cascade_fullres')
-                      ]
-        # download first, so that the region sub-models exist before searching for them
-        maybe_download_parameters_tarfile(res_folder[1], DOWNLOAD_URL, extract_dir=siam_model_dir)
-        sub_region = gdir(os.path.join(siam_model_dir, 'siam_model_v04','regions'),
-                          [region_regex, 'nnUNetTrainerNoDA__nnUNetResEncUNetLPlans__3d_fullres'])
-        res_folder = [res_folder, sub_region]
+
+def parse_region_list(region_arg):
+    """-r option : 'CSF,GM_allen,WM' -> ['CSF', 'GM_allen', 'WM'] ; None / 'all' -> None (all) ; 'none' -> []"""
+    if region_arg is None:
+        return None
+    if isinstance(region_arg, (list, tuple)):
+        names = [str(r).strip() for r in region_arg]
+    else:
+        names = [r.strip() for r in region_arg.split(',')]
+    names = [r for r in names if r]
+    if len(names) == 0 or [n.lower() for n in names] == ['all']:
+        return None
+    if [n.lower() for n in names] == ['none']:
+        return []
+    return names
+
+
+def region_list_to_regex(regions):
+    """for the local (non hugging face) models, still selected with a regex on the dataset folder names"""
+    if regions is None:
+        return '.*'
+    if len(regions) == 0:
+        return '(?!)'  # matches nothing
+    return '(' + '|'.join(re.escape(r) for r in regions) + ')'
+
+
+def region_name_from_dataset(dataset_name):
+    """'Dataset801_GM_allen' or 'Dataset801_reg_GM_allen' -> 'GM_allen'"""
+    name = dataset_name.split('_', 1)[1] if '_' in dataset_name else dataset_name
+    return name.removeprefix('reg_')
+
+
+def _list_local_files(local_root):
+    files = []
+    for dp, dns, fns in os.walk(local_root):
+        dns[:] = [d for d in dns if not d.startswith('.')]  # skip .cache (hugging face metadata)
+        files += [os.path.relpath(join(dp, f), local_root).replace(os.sep, '/') for f in fns]
+    return [f for f in files if f != REPO_LISTING_FILE]
+
+
+def list_hf_repo_files(repo_id, local_root, download=True):
+    """Files of the hugging face repo. The listing is cached in local_root/hf_repo_files.txt so that
+    nothing is asked to hugging face once the needed files are there (compute nodes without internet).
+    Fallback (no cache, no internet or download=False) : the files already in local_root."""
+    cache = join(local_root, REPO_LISTING_FILE)
+    if isfile(cache):
+        with open(cache) as f:
+            return [l.strip() for l in f if l.strip()]
+    if download and os.environ.get('HF_HUB_OFFLINE', '0') in ('0', '', 'false', 'False'):
+        try:
+            from huggingface_hub import HfApi
+            files = HfApi().list_repo_files(repo_id)
+            maybe_mkdir_p(local_root)
+            with open(cache, 'w') as f:
+                f.write('\n'.join(files) + '\n')
+            return files
+        except Exception as e:
+            print(f'WARNING cannot list the files of {repo_id} on hugging face ({e}), using the local files only')
+    return _list_local_files(local_root)
+
+
+def model_files_to_download(repo_files, model_dir, nb_fold=0):
+    """json files of a model folder + checkpoint of the first nb_fold folds (all folds if nb_fold=0)"""
+    prefix = model_dir.rstrip('/') + '/'
+    jsons = [f for f in repo_files if f.startswith(prefix) and '/' not in f[len(prefix):] and f.endswith('.json')]
+    folds = sorted({int(m.group(1)) for f in repo_files
+                    if (m := re.match(re.escape(prefix) + r'fold_(\d+)/checkpoint_(final|best)\.', f))})
+    if nb_fold:
+        folds = folds[:nb_fold]
+    ckpts = []
+    for k in folds:
+        fk = [f for f in repo_files if f.startswith(f'{prefix}fold_{k}/checkpoint_final.')]
+        if len(fk) == 0:
+            fk = [f for f in repo_files if f.startswith(f'{prefix}fold_{k}/checkpoint_best.')]
+        ckpts += fk
+    return jsons + ckpts
+
+
+def download_hf_files(repo_id, files, local_root):
+    """download (from hugging face) the files missing in local_root"""
+    missing = [f for f in files if not isfile(join(local_root, f))]
+    if len(missing) == 0:
+        return
+    from huggingface_hub import hf_hub_download
+    print(f'Downloading {len(missing)} model files from hugging face ({repo_id}) into {local_root}')
+    print('(delete the model folder if no more used, the full v0.4 model is ~20G)')
+    for f in missing:
+        hf_hub_download(repo_id, f, local_dir=local_root)
+
+
+def get_v04_model_folders(siam_model_dir, regions=None, nb_fold=0, lowres=False, download=True):
+    """
+    regions : list of region names (None : all regions, [] : no region)
+    lowres  : only the low res (1mm) tissue model, no region
+    nb_fold : only the first nb_fold folds of each model (0 : all)
+    Only the needed files are downloaded.
+    """
+    local_root = os.path.join(siam_model_dir, V04_DIR)
+    repo_files = list_hf_repo_files(HF_REPO_V04, local_root, download=download)
+
+    if lowres:
+        if regions:
+            print(f'WARNING --lowres : tissue only, the regions {regions} are ignored')
+        tissue_models, region_models = [V04_LOWRES], []
+    else:
+        tissue_models = [V04_LOWRES, V04_FULLRES]
+        # region models : regions/<Dataset>/<trainer>/
+        region_ds = sorted({f.split('/')[1] for f in repo_files
+                            if f.startswith('regions/') and f.split('/')[2:3] == [V04_REGION_TRAINER]})
+        available = {region_name_from_dataset(ds): ds for ds in region_ds}
+        if regions is None:
+            selected = region_ds
+        else:
+            lower = {k.lower(): v for k, v in available.items()}
+            unknown = [r for r in regions if r.lower() not in lower]
+            if len(unknown) > 0:
+                raise ValueError(f'Unknown region(s) {unknown}. Available regions are : {",".join(available)}')
+            selected = [lower[r.lower()] for r in regions]
+        region_models = [f'regions/{ds}/{V04_REGION_TRAINER}' for ds in selected]
+
+    if download:
+        to_download = []
+        for m in tissue_models + region_models:
+            fm = model_files_to_download(repo_files, m, nb_fold)
+            if not any('/fold_' in f for f in fm):
+                raise FileNotFoundError(f'no checkpoint found for model {m} in {HF_REPO_V04}')
+            to_download += fm
+        download_hf_files(HF_REPO_V04, to_download, local_root)
+
+    tissue = [os.path.join(local_root, m) for m in tissue_models]
+    tissue = tissue[0] if lowres else tissue
+    if lowres or (regions is not None and len(region_models) == 0):
+        return tissue  # 'simple' (low res) or 'cascade' (no region)
+    return [tissue, [os.path.join(local_root, m) for m in region_models]]
+
+
+def get_model_path_and_fold(num_model: int, regions=None, nb_fold=0, lowres=False, download=True):
+    """
+    regions : list of region names (None : all)
+    lowres  : (model 4 only) only the low res tissue model
+    download: if False, nothing is downloaded (used by regroup_regions)
+    """
+    siam_model_dir = get_siam_model_dir()
+    region_regex = region_list_to_regex(regions)
+    if lowres and num_model != 4:
+        raise ValueError('--lowres is only available for model 4 (-m 4)')
+
+    if num_model==4: #next release region predictions, from hugging face
+        res_folder = get_v04_model_folders(siam_model_dir, regions=regions, nb_fold=nb_fold,
+                                           lowres=lowres, download=download)
         out_prefix = 'siamV04'
 
     elif num_model==0: #get it from zenodo
@@ -375,6 +519,8 @@ def get_model_path_and_fold(num_model:int , region_regex:str = '.*', nb_fold=0):
 
 def get_fold_list(res, nb_fold=0):
     existing_fold = gdir(res,'fold')
+    if len(existing_fold) == 0:  # not downloaded (regroup_regions)
+        return []
     if nb_fold:
         existing_fold = existing_fold[:nb_fold]
     model_files = gfile(existing_fold, 'checkpoint_final') #.pth

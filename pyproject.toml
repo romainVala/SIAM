@@ -21,7 +21,8 @@ dependencies = [
     "torch>=2.0.0",
     "nnunetv2>=2.5.1",
     "pandas",
-    "torchio"
+    "torchio",
+    "huggingface_hub"
 ]
 
 [project.scripts]
