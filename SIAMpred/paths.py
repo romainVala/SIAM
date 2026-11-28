@@ -258,9 +258,10 @@ def get_v04_model_folders(siam_model_dir, regions='all', nb_fold=0, lowres=False
             if not any('/fold_' in f for f in fm):
                 raise FileNotFoundError(f'no checkpoint found for model {m} in {HF_REPO_V04}')
             to_download += fm
-        # download counter : only when the low res tissue model is downloaded (once per user / model dir)
-        lowres_ckpts = [f for f in model_files_to_download(repo_files, V04_LOWRES, nb_fold) if '/fold_' in f]
-        new_user = any(not isfile(join(local_root, f)) for f in lowres_ckpts)
+        # download counter : only when the first fold of the low res tissue model is downloaded
+        # (once per user / model dir : the other folds or the region models downloaded later are not counted)
+        first_fold = [f for f in model_files_to_download(repo_files, V04_LOWRES, nb_fold=1) if '/fold_' in f]
+        new_user = any(not isfile(join(local_root, f)) for f in first_fold)
         download_hf_files(HF_REPO_V04, to_download, local_root)
         if new_user:
             fetch_hf_config(HF_REPO_V04, local_root)  # counted as one download by hugging face
